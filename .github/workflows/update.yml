@@ -1,0 +1,44 @@
+name: 自动更新REITs数据
+
+# 触发方式：
+# 1. 定时：每天 08:15 北京时间（UTC 00:15）自动抓取
+# 2. 手动：仓库 Actions 页 → 本工作流 → Run workflow 按钮
+on:
+  schedule:
+    - cron: "15 0 * * *"          # 每天 UTC 00:15 = 北京时间 08:15
+  workflow_dispatch: {}            # 支持手动触发
+
+permissions:
+  contents: write                  # 允许把新快照提交回仓库
+
+concurrency:
+  group: reits-update
+  cancel-in-progress: false
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出仓库
+        uses: actions/checkout@v4
+
+      - name: 配置 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 运行抓取脚本（生成 reits_snapshot.js + reits_snapshot.json）
+        run: python reits_update.py
+
+      - name: 提交新快照并推送
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add reits_snapshot.js reits_snapshot.json
+          # 数据无变化时不产生空提交，避免无限循环
+          if git diff --cached --quiet; then
+            echo "数据无变化，跳过提交"
+          else
+            git commit -m "chore: 自动更新 REITs 数据快照 $(date +%Y-%m-%d)"
+            git push
+          fi
