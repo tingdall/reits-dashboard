@@ -294,6 +294,17 @@ def main():
     with open(out_path, "w", encoding="utf-8") as f:
         f.write(js)
 
+    # 额外输出纯 JSON 快照（GitHub Pages 在线版网页 fetch 用，无 eval 需求）
+    # 结构：{"date": "...", "cls_version": "...", "items": [...]}
+    json_out = os.path.join(base, "reits_snapshot.json")
+    with open(json_out, "w", encoding="utf-8") as f:
+        json.dump({
+            "date": snap_date,
+            "cls_version": CLS_VERSION,
+            "items": merged,
+        }, f, ensure_ascii=False)
+        f.write("\n")
+
     from collections import Counter
     ex_cnt = Counter(x["ex"] for x in merged)
     print("-" * 52)
@@ -301,6 +312,7 @@ def main():
     for k, v in ex_cnt.items():
         print(f"      {k}: {v} 条")
     print(f"      已写入 {out_path}")
+    print(f"      已写入 {json_out}（纯 JSON，供在线版加载）")
     print("      刷新看板页面即可加载最新数据。")
 
 
