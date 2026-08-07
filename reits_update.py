@@ -250,17 +250,31 @@ def main():
     print("  机构间REITs（持有型不动产）数据更新")
     print("=" * 52)
     merged = []
+    ok = {"sse": False, "szse": False}
     try:
         merged += fetch_sse()
+        ok["sse"] = True
     except Exception as e:
         print(f"  [警告] 上交所抓取失败：{e}")
-    try:
-        merged += fetch_szse()
-    except Exception as e:
-        print(f"  [警告] 深交所抓取失败：{e}")
+    # 深交所：海外/网络不稳时重试 2 次（GitHub Actions 偶发 Connection reset）
+    for attempt in range(1, 4):
+        try:
+            merged += fetch_szse()
+            ok["szse"] = True
+            break
+        except Exception as e:
+            print(f"  [警告] 深交所抓取失败（第 {attempt} 次）：{e}")
+            if attempt < 3:
+                print(f"  [重试] 5 秒后重试…")
+                time.sleep(5)
 
     if not merged:
         print("[错误] 两所均未获取到数据，请检查网络后重试。")
+        sys.exit(1)
+    if not (ok["sse"] and ok["szse"]):
+        print("[错误] 两所数据不完整（上交所={} 深交所={}），为避免用部分数据覆盖完整快照，本次更新中止。"
+              .format("OK" if ok["sse"] else "FAIL", "OK" if ok["szse"] else "FAIL"))
+        print("      请稍后重试，或检查网络后手动运行。")
         sys.exit(1)
 
     # 默认排序：更新日期降序 → 受理日期降序 → 拟发行金额降序
