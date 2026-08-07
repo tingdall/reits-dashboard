@@ -53,6 +53,12 @@ AGENTS.md                          # 项目规则文件
 
 本仓库的抓取架构（上交所 `ZQ_XMLB` / 深交所 `ShowReport` 接口 + Referer 处理 + 快照机制）与数据模型（`{id, num, name, mgr, writer, amt, status, up, acc, origin, ex, ptype, psub}`）是通用的，**可平滑扩展到公募REITs** 等其他资产类型的抓取（换关键词/接口参数即可）。
 
+## 自动更新与托管（GitHub Actions + Pages）
+
+- **在线版**：https://tingdall.github.io/reits-dashboard/ （打开即最新数据，每日 08:15 自动更新）
+- **快照历史**：每次自动更新产生的 commit 永久留在 git 历史，数据可追溯、可恢复任意日期；单条快照约 50KB（每天 1 条 ≈ 每年 18MB），10 年约 180MB，无需主动清理
+- **用量参考**（官方软限制）：存储 ≤ 1GB / 月带宽 ≤ 100GB / 部署 10 分钟超时——本项目用量为其千分之一量级，零成本零维护
+
 ## 免责声明
 
 本项目仅用于数据展示与学习，数据来自交易所公开信息，不构成任何投资建议。数据准确性以交易所官网为准。
