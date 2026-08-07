@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>机构间REITs数据看板 · 机构版</title>
+<style>
+:root{
+  --brand:#d94016;            /* 品牌主色 */
+  --brand-soft:#f6d9cd;
+  --brand-deep:#9c2e12;
+  --bg:#f5f3ef;
+  --card:#ffffff;
+  --ink:#2a2622;
+  --ink-2:#6b645c;
+  --line:#e6e1d8;
+  --line-soft:#efebe3;
+  --blue:#2f6fb3; --blue-soft:#e4edf6;
+  --amber:#b06a1e; --amber-soft:#f8eeda;
+  --gray:#7a746c; --gray-soft:#f0ede8;
+  --green:#3a7d44; --green-soft:#e3efe4;
+  --red:#c0392b; --red-soft:#f5d8d3;
+  --shadow:0 1px 2px rgba(60,40,20,.05),0 8px 24px rgba(60,40,20,.06);
+  --radius:12px;
+  --mono:'SF Mono',Consolas,'Roboto Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+  background:var(--bg);color:var(--ink);font-size:14px;line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+/* ===== 顶部导航 ===== */
+.topbar{
+  position:sticky;top:0;z-index:50;
+  background:rgba(245,243,239,.86);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--line);
+}
+.topbar-inner{max-width:1440px;margin:0 auto;padding:12px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+.brand{display:flex;align-items:center;gap:10px}
+.brand .logo{
+  width:36px;height:36px;border-radius:9px;background:var(--brand);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;
+  box-shadow:0 2px 8px rgba(217,64,22,.35);
+}
+.brand h1{font-size:17px;font-weight:700;letter-spacing:.5px}
+.brand .sub{font-size:11px;color:var(--ink-2);margin-top:1px}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+/* 交易所 Tab 切换 */
+.ex-tabs{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card);flex-shrink:0}
+.ex-tabs button{border:none;background:#faf9f6;color:var(--ink-2);font-size:12.5px;padding:6px 14px;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+.ex-tabs button:hover{color:var(--brand)}
+.ex-tabs button.on{background:var(--brand);color:#fff;font-weight:600}
+.ex-tabs button:not(.on)+button{border-left:1px solid var(--line)}
+.ex-tabs button .cnt{font-size:10.5px;opacity:.75;margin-left:3px;font-variant-numeric:tabular-nums}
+.ex-tabs button.on .cnt{opacity:.9}
+.snapshot{font-size:11px;color:var(--ink-2);background:var(--card);border:1px solid var(--line);padding:5px 10px;border-radius:20px;white-space:nowrap}
+.snapshot b{color:var(--brand)}
+.btn{font-size:12.5px;border:1px solid var(--line);background:var(--card);color:var(--ink);padding:6px 14px;border-radius:8px;cursor:pointer;transition:all .15s;white-space:nowrap;font-family:inherit}
+.btn:hover{border-color:var(--brand);color:var(--brand)}
+.btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+.btn.primary:hover{background:var(--brand-deep);border-color:var(--brand-deep)}
+.btn:active{transform:translateY(1px)}
+/* ===== 统计条 ===== */
+.stats{max-width:1440px;margin:16px auto 0;padding:0 20px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.stat{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);padding:12px 16px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--brand)}
+.stat:nth-child(2)::before{background:var(--green)}
+.stat:nth-child(3)::before{background:var(--amber)}
+.stat:nth-child(4)::before{background:var(--blue)}
+.stat .num{font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+.stat .num small{font-size:13px;font-weight:500;color:var(--ink-2);margin-left:3px}
+.stat .lab{font-size:11.5px;color:var(--ink-2);margin-top:2px}
+.stat .lab b{color:var(--ink);font-weight:600}
+/* ===== 图表区 ===== */
+.charts{max-width:1440px;margin:14px auto 0;padding:0 20px;display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.chart-card{background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);position:relative}
+.chart-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:10px}
+.chart-card-head h3{font-size:13.5px;font-weight:700;color:var(--ink);padding-bottom:8px;border-bottom:2px solid var(--brand);display:inline-block}
+.chart-toggle{display:inline-flex;border:1px solid var(--line);border-radius:7px;overflow:hidden;flex-shrink:0}
+.chart-toggle button{padding:4px 10px;font-size:11.5px;border:none;background:#faf9f6;color:var(--ink-2);cursor:pointer;font-family:inherit;transition:all .15s}
+.chart-toggle button:hover{color:var(--brand)}
+.chart-toggle button.on{background:var(--brand);color:#fff;font-weight:600}
+.chart-toggle button:not(.on)+button{border-left:1px solid var(--line)}
+.chart-body{display:flex;flex-direction:column;align-items:center;gap:12px}
+.chart-donut{width:100%;text-align:center}
+.chart-donut svg{width:200px;height:200px}
+.chart-donut .donut-center{font-weight:700;font-size:30px;color:var(--ink);line-height:1.1}
+.chart-donut .donut-center small{font-size:11px;font-weight:500;color:var(--ink-2);display:block;margin-top:2px}
+/* 环形图下方数字标签（横排） */
+.legend-btm{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;width:100%}
+.legend-btm .li{display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--line-soft);border-radius:20px;padding:4px 11px;font-size:11.5px;min-width:82px}
+.legend-btm .li .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.legend-btm .li .nm{color:var(--ink-2);flex:1}
+.legend-btm .li .ct{font-variant-numeric:tabular-nums;font-weight:700;color:var(--brand-deep);font-size:13.5px}
+/* TOP 条形图（按金额/单量切换） */
+.bar-row{display:flex;align-items:center;gap:8px;font-size:11.5px;padding:3px 0}
+.bar-row .nm{flex:0 0 150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink)}
+.bar-row .bar{flex:1;height:14px;background:#f0ede7;border-radius:7px;overflow:hidden;position:relative}
+.bar-row .bar-fill{display:block;height:100%;width:0;border-radius:7px;background:linear-gradient(90deg,#9c2e12 0%,#d94016 50%,#e88a6b 100%);transition:width .5s}
+.bar-row .bar-val{flex:0 0 70px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink-2);font-family:var(--mono);font-size:11px;white-space:nowrap}
+/* 月度趋势 */
+.trend-row{display:flex;align-items:center;gap:8px;font-size:11.5px;padding:3px 0}
+.trend-row .ym{flex:0 0 60px;color:var(--ink-2);font-family:var(--mono);font-size:11.5px}
+.trend-row .bar{flex:1;height:14px;background:#f0ede7;border-radius:7px;overflow:hidden}
+.trend-row .bar-fill{display:block;height:100%;width:0;border-radius:7px;background:linear-gradient(90deg,#9c2e12 0%,#d94016 50%,#e88a6b 100%);transition:width .5s}
+.trend-row .ct{flex:0 0 70px;text-align:right;font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink-2);font-family:var(--mono);font-size:11px;white-space:nowrap}
+/* ===== 主布局 ===== */
+.wrap{max-width:1440px;margin:16px auto 40px;padding:0 20px;display:flex;gap:16px;align-items:flex-start}
+/* 筛选面板 */
+.filters{width:264px;flex-shrink:0;background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow);position:sticky;top:70px;max-height:calc(100vh - 92px);overflow-y:auto;padding-bottom:8px}
+.filters::-webkit-scrollbar{width:6px}
+.filters::-webkit-scrollbar-thumb{background:#d8d2c7;border-radius:3px}
+.f-head{display:flex;align-items:center;justify-content:space-between;padding:13px 16px;border-bottom:1px solid var(--line-soft)}
+.f-head h2{font-size:13.5px;font-weight:700;display:flex;align-items:center;gap:7px}
+.f-head .reset{font-size:11.5px;color:var(--brand);cursor:pointer;border:none;background:none;font-family:inherit;padding:2px 4px}
+.f-head .reset:hover{text-decoration:underline}
+.f-body{padding:6px 16px 14px}
+.f-group{padding:12px 0;border-bottom:1px dashed var(--line-soft)}
+.f-group:last-child{border-bottom:none}
+.f-group .f-label{font-size:12px;font-weight:600;color:var(--ink-2);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.search-box{position:relative}
+.search-box input{width:100%;border:1px solid var(--line);border-radius:8px;padding:7px 10px 7px 30px;font-size:13px;background:#faf9f6;font-family:inherit;color:var(--ink);outline:none;transition:border .15s}
+.search-box input:focus{border-color:var(--brand);background:#fff}
+.search-box .ic{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-2);font-size:13px;pointer-events:none}
+/* 多选下拉（panel 用 fixed 定位避开 overflow 裁剪） */
+.multi{position:relative;border:1px solid var(--line);border-radius:8px;background:#faf9f6;cursor:pointer;user-select:none;z-index:1}
+.multi.open{z-index:40}
+.multi .mt-head{display:flex;align-items:center;justify-content:space-between;padding:7px 10px;font-size:12.5px;color:var(--ink)}
+.multi .mt-head .chips{display:flex;gap:4px;flex-wrap:wrap;flex:1;min-width:0;overflow:hidden}
+.multi .mt-head .chip{background:var(--brand-soft);color:var(--brand-deep);font-size:10.5px;padding:1px 7px;border-radius:10px;font-weight:600;white-space:nowrap}
+.multi .mt-head .placeholder{color:var(--ink-2)}
+.multi .arrow{color:var(--ink-2);font-size:10px;margin-left:6px;transition:transform .15s}
+.multi.open .arrow{transform:rotate(180deg)}
+.multi .panel{display:none;position:fixed;z-index:9999;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 14px 36px rgba(60,40,20,.22);max-height:230px;overflow-y:auto;padding:6px;min-width:200px}
+.multi.open .panel{display:block}
+.multi .opt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:7px;cursor:pointer;font-size:12.5px}
+.multi .opt:hover{background:var(--bg)}
+.multi .opt input{accent-color:var(--brand);width:14px;height:14px;cursor:pointer}
+.multi .opt .cnt{margin-left:auto;color:var(--ink-2);font-size:11px}
+.multi .opt-all{border-bottom:1px dashed var(--line-soft);padding-bottom:5px;margin-bottom:4px}
+/* 标签筛选 */
+.tag-row{display:flex;flex-wrap:wrap;gap:6px}
+.tag-btn{font-size:11.5px;padding:4px 11px;border-radius:14px;border:1px solid var(--line);background:#faf9f6;color:var(--ink-2);cursor:pointer;transition:all .15s;font-family:inherit}
+.tag-btn:hover{border-color:var(--brand);color:var(--brand)}
+.tag-btn.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:600}
+.range{display:flex;align-items:center;gap:6px}
+.range input{flex:1;min-width:0;border:1px solid var(--line);border-radius:7px;padding:6px 8px;font-size:12px;background:#faf9f6;color:var(--ink);font-family:var(--mono);outline:none}
+.range input:focus{border-color:var(--brand);background:#fff}
+.range .sep{color:var(--ink-2);font-size:11px}
+/* ===== 表格区 ===== */
+.main{flex:1;min-width:0;background:var(--card);border:1px solid var(--line-soft);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.tb-toolbar{display:flex;align-items:center;gap:12px;padding:11px 16px;border-bottom:1px solid var(--line-soft);flex-wrap:wrap}
+.tb-toolbar .result{font-size:12.5px;color:var(--ink-2)}
+.tb-toolbar .result b{color:var(--brand);font-size:15px}
+.tb-toolbar .tools{margin-left:auto;display:flex;gap:8px}
+.table-scroll{overflow:auto;max-height:calc(100vh - 200px);position:relative}
+table{width:100%;border-collapse:separate;border-spacing:0;font-size:12.8px;min-width:1180px}
+thead th{position:sticky;top:0;z-index:10;background:#f0ede7;font-size:12px;font-weight:700;color:#4c463e;text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap;user-select:none}
+th.sortable{cursor:pointer;transition:background .12s}
+th.sortable:hover{background:#e9e4da}
+th .s-arrow{display:inline-block;margin-left:4px;font-size:10px;color:var(--brand);width:12px}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--line-soft);vertical-align:top}
+tbody tr{transition:background .1s}
+tbody tr:hover{background:#fbf6f0}
+tbody tr.marked{background:#fff8f4}
+tbody tr.marked:hover{background:#fdf0e8}
+td.name{font-weight:600;color:#241f1a;min-width:220px;max-width:280px}
+td.amount{font-variant-numeric:tabular-nums;font-family:var(--mono);white-space:nowrap}
+td.date{font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--ink-2);font-size:12.3px}
+td .multi-line{white-space:nowrap;max-width:170px;overflow:hidden;text-overflow:ellipsis;display:block}
+.cell-sub{font-size:11px;color:var(--ink-2);margin-top:2px}
+.badge{display:inline-block;padding:2px 9px;border-radius:11px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-ok{background:var(--green-soft);color:var(--green)}
+.b-fb{background:var(--amber-soft);color:var(--amber)}
+.b-sb{background:var(--blue-soft);color:var(--blue)}
+.b-zz{background:var(--gray-soft);color:var(--gray)}
+.b-stop{background:var(--red-soft);color:var(--red)}
+.ptype{display:inline-flex;align-items:center;gap:5px;flex-wrap:wrap}
+.p-badge{font-size:10.5px;padding:1px 7px;border-radius:9px;border:1px solid;white-space:nowrap}
+.p-reits{color:var(--brand-deep);border-color:#e0b3a2;background:#fdf1eb}
+/* 交易所徽章 */
+.ex-badge{display:inline-block;font-size:10.5px;padding:1px 7px;border-radius:9px;border:1px solid;white-space:nowrap;font-weight:600}
+.ex-sse{color:var(--brand-deep);border-color:#e0b3a2;background:#fdf1eb}
+.ex-szse{color:#1f5c8e;border-color:#c5d8ea;background:#eef5fb}
+.mark-badge{display:inline-block;font-size:10.5px;padding:1px 8px;border-radius:9px;margin:1px 3px 1px 0;white-space:nowrap;font-weight:600}
+.m-focus{background:var(--brand);color:#fff}
+.m-audited{background:var(--blue);color:#fff}
+.m-follow{background:var(--amber);color:#fff}
+.m-custom{background:#6b645c;color:#fff}
+.mark-btn{border:1px solid var(--line);background:#faf9f6;border-radius:7px;font-size:11.5px;color:var(--ink-2);padding:4px 10px;cursor:pointer;transition:all .13s;font-family:inherit;white-space:nowrap}
+.mark-btn:hover{border-color:var(--brand);color:var(--brand)}
+.mark-btn.on{background:var(--brand);border-color:var(--brand);color:#fff}
+/* 右键菜单 */
+.ctx-menu{position:absolute;z-index:70;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 34px rgba(60,40,20,.22);padding:10px;width:200px;display:none}
+.ctx-menu.show{display:block}
+.ctx-menu .ctx-title{font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:7px}
+.ctx-menu .ctx-opt{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:7px;cursor:pointer;font-size:12.5px}
+.ctx-menu .ctx-opt:hover{background:var(--bg)}
+.ctx-menu .ctx-opt input{accent-color:var(--brand)}
+.ctx-menu .ctx-new{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line-soft)}
+.ctx-menu .ctx-new input{flex:1;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;outline:none;font-family:inherit}
+.ctx-menu .ctx-new input:focus{border-color:var(--brand)}
+.ctx-menu .ctx-new button{border:none;background:var(--brand);color:#fff;border-radius:6px;padding:5px 9px;font-size:12px;cursor:pointer;font-family:inherit}
+/* 标记弹层（顶部按钮触发，复用标记UI） */
+.mark-pop{position:fixed;z-index:9999;background:#fff;border:1px solid var(--line);border-radius:10px;box-shadow:0 12px 34px rgba(60,40,20,.18);padding:10px;width:190px;display:none}
+.mark-pop.show{display:block}
+.mark-pop .mp-title{font-size:11.5px;font-weight:700;color:var(--ink-2);margin-bottom:7px}
+.mark-pop .mp-opt{display:flex;align-items:center;gap:7px;padding:5px 7px;border-radius:7px;cursor:pointer;font-size:12.5px}
+.mark-pop .mp-opt:hover{background:var(--bg)}
+.mark-pop .mp-opt input{accent-color:var(--brand)}
+.mark-pop .mp-new{display:flex;gap:6px;margin-top:8px;padding-top:8px;border-top:1px dashed var(--line-soft)}
+.mark-pop .mp-new input{flex:1;border:1px solid var(--line);border-radius:6px;padding:5px 8px;font-size:12px;outline:none;font-family:inherit}
+.mark-pop .mp-new input:focus{border-color:var(--brand)}
+.mark-pop .mp-new button{border:none;background:var(--brand);color:#fff;border-radius:6px;padding:5px 9px;font-size:12px;cursor:pointer;font-family:inherit}
+.no-data{padding:50px 20px;text-align:center;color:var(--ink-2);font-size:13px}
+.no-data .big{font-size:26px;margin-bottom:8px}
+/* ===== 页脚 ===== */
+.footer{max-width:1440px;margin:0 auto 34px;padding:0 20px;color:var(--ink-2);font-size:11.5px}
+.footer .src{background:var(--card);border:1px solid var(--line-soft);border-radius:10px;padding:12px 16px;box-shadow:var(--shadow)}
+.footer a{color:var(--brand);text-decoration:none}
+.footer a:hover{text-decoration:underline}
+/* toast */
+.toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:10000;background:#2a2622;color:#fff;font-size:13px;padding:10px 20px;border-radius:10px;opacity:0;pointer-events:none;transition:all .25s;box-shadow:0 10px 30px rgba(0,0,0,.25);max-width:90vw}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{background:#8a1f10}
+/* ===== 数据更新下载面板 ===== */
+.modal-mask{position:fixed;inset:0;background:rgba(42,38,34,.45);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-mask.show{display:flex}
+.modal{background:#fff;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.3);width:560px;max-width:100%;max-height:92vh;overflow-y:auto;padding:20px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.modal-head h3{font-size:15px;font-weight:700}
+.modal-close{border:none;background:none;font-size:22px;cursor:pointer;color:var(--ink-2);line-height:1;padding:0 4px}
+.modal-close:hover{color:var(--brand)}
+.modal-body{font-size:13px;color:var(--ink)}
+.modal-body .note{background:var(--bg);border-left:3px solid var(--brand);padding:8px 12px;border-radius:6px;font-size:12px;color:var(--ink-2);margin:8px 0;line-height:1.7}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:12px;flex-wrap:wrap}
+@media(max-width:1100px){
+  .wrap{flex-direction:column}
+  .filters{width:100%;position:static;max-height:none}
+  .stats{grid-template-columns:repeat(3,1fr)}
+  .charts{grid-template-columns:1fr}
+}
+@media(max-width:760px){
+  .stats{grid-template-columns:repeat(2,1fr)}
+  .topbar-inner{padding:10px 14px}
+  .wrap,.stats,.charts,.footer{padding-left:14px;padding-right:14px}
+  .stat .num{font-size:20px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="logo">RE</div>
+      <div>
+        <h1>机构间REITs数据看板</h1>
+        <div class="sub">持有型不动产资产支持专项计划 · 机构内部数据管理</div>
+      </div>
+    </div>
+    <div class="top-actions">
+      <div class="ex-tabs" id="exTabs">
+        <button class="on" data-ex="">全部 <span class="cnt" id="cntAll"></span></button>
+        <button data-ex="上交所">上交所 <span class="cnt" id="cntSse"></span></button>
+        <button data-ex="深交所">深交所 <span class="cnt" id="cntSzse"></span></button>
+      </div>
+      <span class="snapshot">数据快照 <b id="snapshotDate">—</b></span>
+      <button class="btn" id="btnResetView">重置视图</button>
+      <button class="btn primary" id="btnExport">导出 CSV</button>
+    </div>
+  </div>
+</div>
+
+<div class="stats" id="statsRow"></div>
+
+<!-- 图表区 -->
+<div class="charts">
+  <div class="chart-card">
+    <h3>项目状态分布</h3>
+    <div class="chart-body">
+      <div class="chart-donut" id="chartStatus"></div>
+      <div class="legend-btm" id="legendStatus"></div>
+    </div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-card-head">
+      <h3>计划管理人 TOP10</h3>
+      <div class="chart-toggle" id="toggleTopMgr">
+        <button class="on" data-mode="amount">金额</button>
+        <button data-mode="count">单量</button>
+      </div>
+    </div>
+    <div class="bar-list" id="chartTopMgr"></div>
+  </div>
+  <div class="chart-card">
+    <div class="chart-card-head">
+      <h3>近12个月受理趋势</h3>
+      <div class="chart-toggle" id="toggleTrend">
+        <button class="on" data-mode="amount">金额</button>
+        <button data-mode="count">单量</button>
+      </div>
+    </div>
+    <div class="bar-list" id="chartTrend"></div>
+  </div>
+</div>
+
+<div class="wrap">
+  <aside class="filters">
+    <div class="f-head">
+      <h2>▦ 筛选条件</h2>
+      <button class="reset" id="btnResetFilters">清除全部</button>
+    </div>
+    <div class="f-body">
+      <div class="f-group">
+        <div class="f-label">关键字搜索</div>
+        <div class="search-box">
+          <span class="ic">⌕</span>
+          <input id="kw" type="text" placeholder="名称 / 编号 / 原始权益人">
+        </div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">标记状态 <span class="tag-count" id="tagFilterHint"></span></div>
+        <div class="tag-row" id="tagRow"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">交易所</div>
+        <div class="multi" id="multi-ex"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">项目状态</div>
+        <div class="multi" id="multi-status"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">原始权益人</div>
+        <div class="multi" id="multi-origin"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">计划管理人</div>
+        <div class="multi" id="multi-writer"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">承销商 / 管理人（简称）</div>
+        <div class="multi" id="multi-mgr"></div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">拟发行金额（亿元）</div>
+        <div class="range">
+          <input id="amtMin" type="number" min="0" step="0.01" placeholder="下限"><span class="sep">–</span><input id="amtMax" type="number" min="0" step="0.01" placeholder="上限">
+        </div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">受理日期区间</div>
+        <div class="range">
+          <input id="accFrom" type="date"><span class="sep">至</span><input id="accTo" type="date">
+        </div>
+      </div>
+      <div class="f-group">
+        <div class="f-label">更新日期区间</div>
+        <div class="range">
+          <input id="upFrom" type="date"><span class="sep">至</span><input id="upTo" type="date">
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <section class="main">
+    <div class="tb-toolbar">
+      <div class="result">共 <b id="showCount">0</b> 条 <span id="filterDesc"></span> ｜ 在表格行上 <b>右键</b> 快速打标签</div>
+      <div class="tools">
+        <button class="btn" id="btnRefresh">⟳ 数据更新</button>
+      </div>
+    </div>
+    <div class="table-scroll" id="tableScroll">
+      <table id="mainTable">
+        <thead id="thead"></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+  </section>
+</div>
+
+<div class="footer">
+  <div class="src">
+    <b>数据来源：</b>上海证券交易所债券项目信息平台 + 深圳证券交易所固定收益信息平台 · 持有型不动产（机构间REIT）项目
+    <a href="https://bond.sse.com.cn/bridge/information/index_search.shtml?key=%E6%8C%81%E6%9C%89%E5%9E%8B%E4%B8%8D%E5%8A%A8%E4%BA%A7" target="_blank">上交所搜索「持有型不动产」</a>
+    ｜
+    <a href="https://bond.szse.cn/disclosure/progressinfo/index.html" target="_blank">深交所项目进度信息</a>
+    ｜ 抓取接口 <code style="font-family:var(--mono);font-size:11px">reits_update.py</code>（上交所 query.sse.com.cn + 深交所 bond.szse.cn）
+    ｜ 标记数据保存在本地浏览器（localStorage 双备份）。
+    <br><b>数据更新：</b>两所接口均强制校验 Referer，浏览器无法直连。点击顶部「⟳ 数据更新」按钮，从<b>本 HTML 内嵌</b>下载
+    <code style="font-family:var(--mono);font-size:11px">reits_update.py</code> 与 <code style="font-family:var(--mono);font-size:11px">更新数据.bat</code> 到同文件夹，双击 bat 一键抓取两所最新数据，刷新本页即完成更新（无需另发工具文件）。
+  </div>
+
+  <div class="src" style="margin-top:12px">
+    <b>操作说明：</b>
+    <ul style="margin:8px 0 0 18px;line-height:1.9">
+      <li><b>重置视图</b>（顶部按钮）：清除全部筛选条件、恢复默认排序（更新日期降序）并显示全部项目；<u>不会清除标记标签</u>（重点跟踪状态保留）。</li>
+      <li><b>清除全部</b>（筛选面板右上角）：仅清除筛选条件，排序方式保持不变。</li>
+      <li><b>交易所：</b>顶部 Tab「全部 / 上交所 / 深交所」与左侧筛选面板的「交易所」多选联动，可一键查看单所或合并数据；每行有交易所徽章（上交所橙 / 深交所蓝）便于区分来源。</li>
+      <li><b>筛选：</b>左侧面板支持关键字搜索、交易所、标记状态、项目状态、原始权益人、计划管理人、承销商多选（下拉仅列出实际存在的选项），以及拟发行金额区间、受理/更新日期区间；多条件可叠加。</li>
+      <li><b>排序：</b>点击表头（债券名称、原始权益人、金额、日期等）即可切换升/降序，金额与日期默认降序。</li>
+      <li><b>标记：</b>点击行尾「标记」按钮，或在任意数据行上<b>右键</b>，可打上「重点关注 / 已审核 / 待跟进」或自定义标签；标记随浏览器本地保存（localStorage 双备份），刷新不丢失。</li>
+      <li><b>图表：</b>「计划管理人 TOP10」支持按金额/单量切换，「近12个月受理趋势」按受理日期统计、支持金额/单量切换。</li>
+      <li><b>导出 CSV：</b>顶部「导出 CSV」按钮将当前筛选结果导出为表格文件（含标记列）。</li>
+      <li><b>数据更新：</b>点击顶部「⟳ 数据更新」，从本 HTML 下载 <code style="font-family:var(--mono);font-size:11px">更新数据.bat</code> 与 <code style="font-family:var(--mono);font-size:11px">reits_update.py</code> 到同文件夹，双击 bat 抓取两所最新数据后刷新本页（详见上方「数据更新」说明）。</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 标记弹层（顶部按钮触发） -->
+<div class="mark-pop" id="markPop">
+  <div class="mp-title">设置标记（可多选）</div>
+  <div id="mpOptions"></div>
+  <div class="mp-new">
+    <input id="mpNewVal" placeholder="自定义标签" maxlength="10">
+    <button id="mpAdd">添加</button>
+  </div>
+</div>
+
+<!-- 右键菜单（行内右键触发） -->
+<div class="ctx-menu" id="ctxMenu">
+  <div class="ctx-title">标记此行（可多选）</div>
+  <div id="ctxOptions"></div>
+  <div class="ctx-new">
+    <input id="ctxNewVal" placeholder="自定义标签" maxlength="10">
+    <button id="ctxAdd">添加</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- 数据更新下载面板 -->
+<div class="modal-mask" id="dlMask">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>⟳ 数据更新工具</h3>
+      <button class="modal-close" id="dlClose">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="note">浏览器安全策略无法直连交易所接口（需校验 Referer），数据更新需在本地运行小脚本完成。<b>本 HTML 已内嵌更新工具</b>，无需另发文件。</div>
+      <ol style="margin:10px 0 12px 18px;line-height:2">
+        <li>点击下方按钮，将 <b>更新数据.bat</b> 与 <b>reits_update.py</b> 下载到本 HTML 同一文件夹</li>
+        <li>双击 <b>更新数据.bat</b>（自动抓取上交所+深交所最新项目数据）</li>
+        <li>刷新本页面，即加载最新数据</li>
+      </ol>
+      <div class="note" style="background:#fdf6e8;border-color:#eed9a8;color:#7a6212"><b>⚠ 若双击 bat 弹出「Internet 安全设置阻止打开」：</b>浏览器下载的文件带 Mark of the Web 标记。<br>本 bat 已内置自动解除逻辑（运行即生效）；如仍未解除：右键 bat → 属性 → 勾选「解除锁定」→ 应用 → 确定。</div>
+      <div class="modal-actions">
+        <button class="btn primary" id="dlBat">下载 更新数据.bat</button>
+        <button class="btn primary" id="dlPy">下载 reits_update.py</button>
+        <button class="btn" id="dlCancel">关闭</button>
+      </div>
+      <div class="import-result ok" id="dlNote" style="margin-top:12px">内嵌数据快照：<span id="dlSnap"></span> · 共 <span id="dlCnt"></span> 条项目</div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+ * 1. 数据
+ * ========================================================== */
+const RAW_DATA = [{"id":"202b52b7b6e64a83b5797db0b824c335","num":"1","name":"国泰海通-山东高速沈海高速持有型不动产资产支持专项计划","mgr":"国泰海通资管","writer":"上海国泰海通证券资产管理有限公司","amt":65.5,"status":"1","up":"2026-08-06","acc":"2026-08-05","origin":"山东高速基础设施建设有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称含高速，高速公路特许经营权"},{"id":"c3a65a356256442593a76ff3c099c134","num":"2","name":"国元-黄河天炜品牌绿色能源持有型不动产资产支持专项计划（碳中和）","mgr":"国元证券","writer":"国元证券股份有限公司","amt":3.04,"status":"1","up":"2026-08-05","acc":"2026-08-03","origin":"上海天炜能源科技有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含绿色能源/碳中和，光伏等能源资产"},{"id":"72429c4ccc1d4ad0978aaa8a5ca9fe39","num":"3","name":"财通-正泰安能新能源基础设施碳中和绿色持有型不动产资产支持专项计划（乡村振兴）","mgr":"财通证券资管","writer":"财通证券资产管理有限公司","amt":66.62,"status":"1","up":"2026-08-03","acc":"2026-08-03","origin":"正泰安能数字能源（浙江）股份有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源基础设施，光伏等清洁能源"},{"id":"a90cad7bc53c4ef0a1df1f4c1ce2134e","num":"4","name":"中信建投-外高桥集团持有型不动产资产支持专项计划（2026年第一次扩募并新购不动产项目）","mgr":"中信建投证券","writer":"中信建投证券股份有限公司","amt":16.0,"status":"1","up":"2026-08-03","acc":"2026-07-07","origin":"上海外高桥集团股份有限公司,上海外高桥保税区联合发展有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"底层为外高桥4个工业厂房项目（IDC/智能制造/生物医药研发入驻），检索确认"},{"id":"7af29dfa21bf48a692012feb1348eadc","num":"5","name":"元联苏园产城持有型不动产资产支持专项计划（2026年第一次扩募）","mgr":"广发资管","writer":"广发证券资产管理（广东）有限公司","amt":0.5,"status":"2","up":"2026-07-29","acc":"2026-07-15","origin":"苏州新建元产业发展有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称含产城，产业园/产城融合园区"},{"id":"16810ef906a9453882e3390286b2dbc9","num":"6","name":"工银瑞投-杭泰数智新能源基础设施持有型不动产资产支持专项计划","mgr":"工银瑞投","writer":"工银瑞信投资管理有限公司","amt":3.83,"status":"4","up":"2026-07-29","acc":"2026-04-30","origin":"浙江杭泰数智能源开发有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源基础设施，光伏电站"},{"id":"5047c4b973dd4728b7c50f1a0db46101","num":"7","name":"建信住房租赁基金持有型不动产资产支持专项计划（第二至N次扩募并新购入租赁住房项目）","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":50.0,"status":"1","up":"2026-07-28","acc":"2026-07-28","origin":"建万（北京）住房租赁投资基金（有限合伙）,建信（北京）投资住房租赁一号不动产私募投资基金","ex":"上交所","ptype":"产权类","psub":"租赁住房","pflag":"","pnote":"名称明确租赁住房，保障性租赁住房（建信长租）"},{"id":"SZSE_CE93777394A247CD961CE22879A94F76","num":"8","name":"华泰-深圳易储储能碳中和绿色持有型不动产资产支持专项计划","mgr":"华泰资管","amt":6.75,"status":"1","up":"2026-07-28","acc":"2026-07-28","origin":"深圳易储数智能源集团有限公司","writer":"华泰证券(上海）资产管理有限公司","ex":"深交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含储能/碳中和，独立储能电站"},{"id":"610637d6ae87472987d8f6413cedd5ad","num":"9","name":"国联资管-秦皇岛北戴河生命健康产业园持有型不动产资产支持专项计划","mgr":"国联证券资管","writer":"国联证券资产管理有限公司","amt":6.35,"status":"1","up":"2026-07-28","acc":"2026-07-27","origin":"秦皇岛北戴河新区金潮产业发展集团有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称含生命健康产业园"},{"id":"SZSE_3039710837684CF2BE105283EF0BE719","num":"10","name":"太保资产-国泰海通-海尔新能源基础设施碳中和绿色持有型不动产资产支持专项计划（乡村振兴）","mgr":"太平洋资产管理","amt":50.0,"status":"1","up":"2026-07-27","acc":"2026-07-27","origin":"青岛海尔绿色能源科技有限公司","writer":"太平洋资产管理有限责任公司","ex":"深交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源基础设施，光伏/风电"},{"id":"cad8b4866e174600b96d717693954bf4","num":"11","name":"中信证券-义乌市场集团持有型不动产资产支持专项计划（乡村振兴）","mgr":"中信证券","writer":"中信证券股份有限公司","amt":1.5,"status":"2","up":"2026-07-27","acc":"2026-07-13","origin":"义乌市市场发展集团有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"底层为义乌市场集团涉农/民生自持经营性不动产（农贸市场），检索确认"},{"id":"5b8427935c004cdc964218c9995a5354","num":"12","name":"吴兴安居织里吾悦广场持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":6.08,"status":"2","up":"2026-07-20","acc":"2026-07-06","origin":"湖州安誉创业投资集团有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称含吾悦广场，购物中心/商业广场"},{"id":"24b496b291084b3287889b87735bfbc5","num":"13","name":"华泰家驿仓储物流持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":53.23,"status":"2","up":"2026-07-16","acc":"2026-05-08","origin":"天津立度资产经营管理有限公司,天津绿电管理运营有限公司,天津立度新型基础设施建设科技合伙企业（有限合伙）","ex":"上交所","ptype":"产权类","psub":"物流仓储","pflag":"","pnote":"名称明确仓储物流"},{"id":"e8bd42e5d15a4b2c91de12e7eb03c44f","num":"14","name":"国金资管-崇左城建持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":11.21,"status":"2","up":"2026-07-15","acc":"2026-07-01","origin":"广西崇左市城建资产运营投资管理集团有限公司","ex":"上交所","ptype":"产权类","psub":"综合业态","pflag":"","pnote":"用户人工确认：产权类/综合业态"},{"id":"SZSE_4A60D5E2DDEA40058B6116083A268A44","num":"15","name":"中信证券-黄石科技持有型不动产资产支持专项计划","mgr":"中信证券","amt":11.56,"status":"2","up":"2026-07-10","acc":"2026-06-26","origin":"北京风禾智行科技有限公司","writer":"中信证券股份有限公司","ex":"深交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称含科技（黄石科技），科技园区/产业园"},{"id":"36cc6e3d2d624fc588a9afdf41ec3f01","num":"16","name":"中信证券-远景能源新能源持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":5.85,"status":"2","up":"2026-07-10","acc":"2026-06-26","origin":"佳县远宏润新能源有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源，风电/光伏"},{"id":"9b728f78214d433483b3d56d33e731ab","num":"17","name":"华泰-中金数据持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":40.24,"status":"2","up":"2026-07-09","acc":"2026-06-25","origin":"中金数据集团有限公司","ex":"上交所","ptype":"产权类","psub":"数据中心","pflag":"","pnote":"名称明确数据中心（中金数据）"},{"id":"98e05b639ffa4e05a431b00b3876980b","num":"18","name":"财通资管-国泰海通-一道新能清洁能源持有型不动产资产支持专项计划","mgr":"财通证券资管","writer":"财通证券资产管理有限公司","amt":1.41,"status":"8","up":"2026-07-09","acc":"2025-12-31","origin":"上海尤汶新能源有限公司,上海承砺新能源有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含清洁能源，光伏/风电"},{"id":"d73ac2bed30144e99b6cf6a8ac5a6850","num":"19","name":"财通资管-远洲集团酒店持有型不动产资产支持专项计划","mgr":"财通证券资管","writer":"财通证券资产管理有限公司","amt":21.51,"status":"4","up":"2026-07-08","acc":"2026-04-07","origin":"远洲集团股份有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称含酒店，酒店物业（远洲集团酒店）"},{"id":"b3c6f5b98f0a442e93c7f87cfa35bc4a","num":"20","name":"中国铁工投资国家地理信息科技产业园持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":26.74,"status":"4","up":"2026-07-06","acc":"2026-03-02","origin":"金泰产融（北京）创业投资基金管理有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称明确地理信息科技产业园"},{"id":"46a850964d07460c9e1ac14043048b8a","num":"21","name":"中信建投-汇信数据中心持有型不动产资产支持专项计划","mgr":"中信建投证券","writer":"中信建投证券股份有限公司","amt":52.08,"status":"2","up":"2026-07-03","acc":"2026-06-18","origin":"汇信磐科（北京）科技合伙企业（有限合伙）","ex":"上交所","ptype":"产权类","psub":"数据中心","pflag":"","pnote":"名称明确数据中心（汇信数据中心）"},{"id":"d615ed841af642a1aa7c92b48838e20e","num":"22","name":"兴证基实-中光新能源持有型不动产资产支持专项计划","mgr":"兴证资管","writer":"兴证证券资产管理有限公司","amt":7.5,"status":"4","up":"2026-07-03","acc":"2026-03-26","origin":"浙江中光新能源科技有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源（中光新能源），光伏电站"},{"id":"96e2d4a093c94acc84e0b715ffef055c","num":"23","name":"华泰-中铁投资甘海高速持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":23.04,"status":"2","up":"2026-07-01","acc":"2026-06-22","origin":"天津绿电管理运营有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称含高速（甘海高速），高速公路经营权"},{"id":"SZSE_4332659D9E3B4A598CC95FC6F37C84F0","num":"24","name":"兴证基实-碧澄能发新能源持有型不动产资产支持专项计划（碳中和）（2026年第一次扩募并新购入基础设施项目）","mgr":"兴证资管","amt":5.0,"status":"4","up":"2026-06-29","acc":"2026-05-25","origin":"杭州碧澄能源发展有限公司","writer":"兴证证券资产管理有限公司","ex":"深交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源（碧澄能发），光伏/风电"},{"id":"985324c17575494897af9b1b09bd780b","num":"25","name":"国泰海通资管-上实城开租赁住房持有型不动产资产支持专项计划","mgr":"国泰海通资管","writer":"上海国泰海通证券资产管理有限公司","amt":6.8,"status":"2","up":"2026-06-25","acc":"2026-06-10","origin":"上海城开（集团）有限公司","ex":"上交所","ptype":"产权类","psub":"租赁住房","pflag":"","pnote":"名称明确租赁住房（上实城开）"},{"id":"77e4f8f9cafd4f909ca53307a5159a86","num":"26","name":"兴证基实-宏祚新能源持有型不动产资产支持专项计划（碳中和）","mgr":"兴证资管","writer":"兴证证券资产管理有限公司","amt":1.6,"status":"4","up":"2026-06-25","acc":"2026-03-27","origin":"上海宏祚新能源科技有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源（宏祚新能源），光伏/风电"},{"id":"44ed160bc4384974bffcf2a84309e7c9","num":"27","name":"招商证券-铁建大桥局靖江港口持有型不动产资产支持专项计划","mgr":"招证资管","writer":"招商证券资产管理有限公司","amt":5.51,"status":"2","up":"2026-06-24","acc":"2026-06-09","origin":"中国铁建大桥工程局集团有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称含港口，首单港口机构间REITs（检索确认）"},{"id":"8b9fc7d1b17d4533aada88572456d221","num":"28","name":"建信资本-天津临港绿色低碳循环产业园区持有型不动产资产支持专项计划","mgr":"建信资本","writer":"建信资本管理有限责任公司","amt":2.64,"status":"2","up":"2026-06-15","acc":"2026-06-01","origin":"天津临港新动能经济开发有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称明确产业园区（天津临港循环产业园区）"},{"id":"1b55a2a6fab14760bc34b2985670e113","num":"29","name":"华能集团第一期能源资产绿色持有型不动产资产支持专项计划（碳中和）","mgr":"长城证券资管","writer":"长城证券资产管理有限公司","amt":23.0,"status":"4","up":"2026-06-11","acc":"2026-04-30","origin":"华能新能源股份有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称明确能源资产（华能一期），风电/光伏（检索确认）"},{"id":"0ba7147197f84495884cade76eea1d42","num":"30","name":"华能集团第二期能源资产绿色持有型不动产资产支持专项计划（碳中和）","mgr":"长城证券资管","writer":"长城证券资产管理有限公司","amt":22.0,"status":"4","up":"2026-06-11","acc":"2026-04-30","origin":"华能新能源股份有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称明确能源资产（华能二期），风电/光伏（检索确认）"},{"id":"4b1931bec9284aad84ca396c6abf5abb","num":"31","name":"国金资管-吾悦广场持有型不动产资产支持专项计划（2026年第一次扩募并新购商业地产项目）","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":21.46,"status":"4","up":"2026-06-10","acc":"2026-03-16","origin":"新城万博置业有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称含吾悦广场+商业地产，购物中心"},{"id":"afd265b13fea4628913108d7f9e77732","num":"32","name":"中金凯德商业持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":31.5,"status":"4","up":"2026-06-10","acc":"2025-03-31","origin":"上海凯德卓盈投资有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称明确商业（凯德商业）"},{"id":"333e6f0072254077920d65c6527050eb","num":"33","name":"华泰资管-财通-瑞安新天地持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":57.92,"status":"2","up":"2026-06-09","acc":"2026-05-27","origin":"武汉商盈房地产管理有限公司,武汉瑞安天地房地产发展有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"底层为武汉新天地商业街区+写字楼，商业为核心（检索确认）"},{"id":"SZSE_DCF15E24B0844EB9BB6C040F1D6802DA","num":"34","name":"中信证券-奥飞数据2026年第1期绿色数据中心持有型不动产资产支持专项计划","mgr":"中信证券","amt":19.59,"status":"4","up":"2026-06-04","acc":"2026-03-31","origin":"广东奥飞数据科技股份有限公司","writer":"中信证券股份有限公司","ex":"深交所","ptype":"产权类","psub":"数据中心","pflag":"","pnote":"名称明确绿色数据中心（奥飞数据）"},{"id":"0b4f9a9e62084fceab2344efb5fd6308","num":"35","name":"中信证券-华润商业资产持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":95.27,"status":"4","up":"2026-05-29","acc":"2026-03-27","origin":"舜远（北京）企业管理有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称明确商业资产（华润商业）"},{"id":"13710c0a13aa48aeb5be57bad70672fd","num":"36","name":"中金-安益商业持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":90.0,"status":"4","up":"2026-05-25","acc":"2026-03-03","origin":"苏州银翼投资合伙企业（有限合伙）","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称明确商业（安益商业）"},{"id":"a3e22cf1373744618ad63ca92b07f5aa","num":"37","name":"国君资管-济高控股持有型不动产资产支持专项计划","mgr":"国泰海通资管","writer":"上海国泰海通证券资产管理有限公司","amt":9.56,"status":"2","up":"2026-05-14","acc":"2025-07-01","origin":"济高科技产业有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"底层为济南高新区内产业园项目（检索确认）"},{"id":"c4975169bdd543c59e3a5e1f4734cff9","num":"38","name":"中信建投-水发集团水务持有型不动产资产支持专项计划","mgr":"中信建投证券","writer":"中信建投证券股份有限公司","amt":8.22,"status":"2","up":"2026-05-11","acc":"2026-04-22","origin":"水发上善集团有限公司,山东水发天源水务集团有限公司","ex":"上交所","ptype":"经营权类","psub":"市政生态","pflag":"","pnote":"名称含水务，污水处理/供水经营权"},{"id":"4fb3efe40f0a4c9f939a9f280eb81b7e","num":"39","name":"东吴证券-南通崇川集成电路产业园持有型不动产资产支持专项计划（先进制造-科技创新）","mgr":"东吴证券","writer":"东吴证券股份有限公司","amt":7.41,"status":"4","up":"2026-05-11","acc":"2026-03-02","origin":"南通崇盈运营管理集团有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称明确集成电路产业园"},{"id":"6193f1f9ee7941198793739fc95950cc","num":"40","name":"中金-景顺仓储物流持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":7.98,"status":"4","up":"2026-05-08","acc":"2025-10-13","origin":"深圳景顺瑞富股权投资合伙企业（有限合伙）","ex":"上交所","ptype":"产权类","psub":"物流仓储","pflag":"","pnote":"名称明确仓储物流（景顺仓储物流园，检索确认）"},{"id":"ee369312e63f4e2fa74f6f0ff8a54f3c","num":"41","name":"中信证券-成都交子公园持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":4.5,"status":"4","up":"2026-04-30","acc":"2026-01-23","origin":"成都交子公园投资控股有限公司","ex":"上交所","ptype":"产权类","psub":"办公","pflag":"","pnote":"底层为天府国际金融中心4号楼（商业物业/写字楼），检索确认"},{"id":"bcb8a9bf61c6441d82f5a233d4983478","num":"42","name":"中金-博邻长租公寓持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":15.2,"status":"4","up":"2026-04-28","acc":"2026-02-24","origin":"上海博胤安厦商业管理有限公司","ex":"上交所","ptype":"产权类","psub":"租赁住房","pflag":"","pnote":"名称含长租公寓（博邻长租公寓，检索确认首单长租公寓）"},{"id":"9d256ebda67c4d938cdd986f94214747","num":"43","name":"申万宏源-易景仓储物流绿色持有型不动产资产支持专项计划","mgr":"申万宏源资管","writer":"申万宏源证券资产管理有限公司","amt":5.65,"status":"2","up":"2026-04-28","acc":"2025-08-25","origin":"芜湖朗易一号股权投资合伙企业(有限合伙),上海佳初企业管理咨询有限公司","ex":"上交所","ptype":"产权类","psub":"物流仓储","pflag":"","pnote":"名称含仓储物流（易景仓储物流，冷链电商产业园）"},{"id":"b8a83c4385e8487ea9d9446d65b80472","num":"44","name":"京东品牌现代化基础设施持有型不动产资产支持专项计划","mgr":"渤海汇金资管","writer":"渤海汇金证券资产管理有限公司","amt":22.0,"status":"4","up":"2026-04-24","acc":"2025-12-03","origin":"上海京鸿宇企业发展有限公司","ex":"上交所","ptype":"产权类","psub":"物流仓储","pflag":"","pnote":"底层为京东产发仓储物流园（检索确认）"},{"id":"SZSE_996C0CD8DDEA4A07A33E0B76885913BB","num":"45","name":"国泰海通－长春市城市建设集团有限公司持有型不动产资产支持专项计划","mgr":"国泰海通资管","amt":6.22,"status":"4","up":"2026-04-22","acc":"2025-12-30","origin":"长春市城市建设集团有限公司","writer":"上海国泰海通证券资产管理有限公司","ex":"深交所","ptype":"经营权类","psub":"市政生态","pflag":"","pnote":"底层为长春西郊污水处理厂（检索确认）"},{"id":"c033fa493960437c951b59a5e3a8ef37","num":"46","name":"兴证基实-喜悦零售商业持有型不动产资产支持专项计划","mgr":"兴证资管","writer":"兴证证券资产管理有限公司","amt":5.52,"status":"2","up":"2026-04-14","acc":"2026-03-30","origin":"喜悦零售物业（香港）有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称明确零售商业（喜悦零售）"},{"id":"08bbec2e9e3f42eeb5b5bf41d092be3d","num":"47","name":"财通资管-阿特斯持有型不动产资产支持专项计划（碳中和）","mgr":"财通证券资管","writer":"财通证券资产管理有限公司","amt":4.51,"status":"4","up":"2026-04-13","acc":"2026-01-21","origin":"苏州阿特斯新能源开发有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含碳中和（阿特斯），酒泉独立储能电站（检索确认）"},{"id":"cd269186a1344b0a92627dbaeb6503f7","num":"48","name":"润邦达美汽车产业园持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":7.54,"status":"2","up":"2026-04-02","acc":"2025-12-31","origin":"润邦达美物流股份有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称明确汽车产业园"},{"id":"45fd3bdaad2245c0aa577015e940224d","num":"49","name":"东百集团仓储物流持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":14.91,"status":"2","up":"2026-03-26","acc":"2025-03-31","origin":"福建东百集团股份有限公司","ex":"上交所","ptype":"产权类","psub":"物流仓储","pflag":"","pnote":"名称明确仓储物流（东百集团）"},{"id":"81b3f5fefc834e60aa496a6250470655","num":"50","name":"中铁七局泰和里持有型不动产资产支持专项计划","mgr":"招商证券","writer":"招商证券股份有限公司","amt":9.36,"status":"4","up":"2026-03-12","acc":"2026-02-02","origin":"中铁中产置业有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"底层为中铁·泰和里商业街区（文商旅，检索确认）"},{"id":"9424f76a47cd448baaa3846dcd2af880","num":"51","name":"湖州城市集团农副产品物流集散中心持有型不动产绿色资产支持专项计划（乡村振兴）","mgr":"财通证券资管","writer":"财通证券资产管理有限公司","amt":5.5,"status":"4","up":"2026-03-12","acc":"2025-12-01","origin":"湖州市农业开发集团有限公司","ex":"上交所","ptype":"产权类","psub":"物流仓储","pflag":"","pnote":"名称明确农副产品物流集散中心（检索确认）"},{"id":"SZSE_08DED90B438E4E6C9BD3C63CAC08E6D0","num":"52","name":"国泰海通-西安城发中心持有型不动产资产支持专项计划（科技创新）","mgr":"国泰海通资管","amt":8.02,"status":"8","up":"2026-03-11","acc":"2025-09-02","origin":"西安城市发展服务有限公司","writer":"上海国泰海通证券资产管理有限公司","ex":"深交所","ptype":"产权类","psub":"综合业态","pflag":"","pnote":"底层为西安城发中心商业综合体（检索确认）"},{"id":"913fae19dc2749a794b38eb4bd0cdde0","num":"53","name":"元联苏园产城持有型不动产资产支持专项计划","mgr":"广发资管","writer":"广发证券资产管理（广东）有限公司","amt":1.18,"status":"4","up":"2026-03-03","acc":"2025-09-03","origin":"苏州元联药谷一期基础设施投资合伙企业（有限合伙）","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称含产城（元联苏园产城），产业园"},{"id":"SZSE_75ADB37CB2B2485BB1201DE880F75588","num":"54","name":"大同-中航-依云四季酒店文旅持有型不动产资产支持专项计划（百千万工程）","mgr":"大同证券","amt":4.65,"status":"2","up":"2026-03-02","acc":"2026-02-11","origin":"惠州依云四季酒店管理有限公司","writer":"大同证券有限责任公司","ex":"深交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称含酒店文旅（依云四季酒店）"},{"id":"611ea034d5d84f89b71452053297424b","num":"55","name":"国金资管-鼎晖-有孚网络第一期数据中心持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":16.18,"status":"4","up":"2026-02-13","acc":"2025-10-21","origin":"上海有孚网络股份有限公司","ex":"上交所","ptype":"产权类","psub":"数据中心","pflag":"","pnote":"名称明确数据中心（有孚网络）"},{"id":"a4f49d8aa5734224b1cdedc6707738d7","num":"56","name":"中信证券-东久新宜持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":7.25,"status":"4","up":"2026-02-10","acc":"2025-12-05","origin":"上海至瑞轲企业管理咨询有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"底层为上海东久新宜产业园（检索确认）"},{"id":"c33e8b8a7a5c45a8a7746c76d9e33e19","num":"57","name":"申港-通合新能源基础设施持有型不动产资产支持专项计划","mgr":"申港证券","writer":"申港证券股份有限公司","amt":1.14,"status":"4","up":"2026-02-02","acc":"2025-11-20","origin":"苏州中联通合新能源开发投资合伙企业(有限合伙),苏州新联壹新能源投资有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源基础设施（通合新能源）"},{"id":"SZSE_44F5FAE238634E68BD68279EDAE278F3","num":"58","name":"太保资产-港华智慧新能源基础设施碳中和绿色持有型不动产资产支持专项计划","mgr":"太平洋资产管理","amt":3.05,"status":"4","up":"2026-01-30","acc":"2025-12-08","origin":"上海港华智慧能源有限公司","writer":"太平洋资产管理有限责任公司","ex":"深交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源基础设施（港华智慧能源）"},{"id":"bc93baf652b249a191ed4383604d7b04","num":"59","name":"中金国驿仓储物流持有型不动产1-6期资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":98.0,"status":"4","up":"2026-01-26","acc":"2025-09-30","origin":"金泰产融（北京）创业投资基金管理有限公司,金泰产融（天津）资产管理有限公司","ex":"上交所","ptype":"产权类","psub":"物流仓储","pflag":"","pnote":"名称明确仓储物流（中金国驿）"},{"id":"660d35fa453848bcb5523490e53625d3","num":"60","name":"国金资管-世纪乌兰数据中心持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":27.18,"status":"4","up":"2026-01-19","acc":"2025-11-12","origin":"北京世纪互联宽带数据中心有限公司,乌兰察布远见智联管理咨询合伙企业（有限合伙）","ex":"上交所","ptype":"产权类","psub":"数据中心","pflag":"","pnote":"名称明确数据中心（世纪乌兰）"},{"id":"c4c39dfa801c461480aabbae1aa79326","num":"61","name":"国金资管-世纪泓源数据中心持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":80.41,"status":"4","up":"2026-01-14","acc":"2025-11-12","origin":"北京世纪互联宽带数据中心有限公司,苏州远见数纪管理咨询合伙企业（有限合伙）","ex":"上交所","ptype":"产权类","psub":"数据中心","pflag":"","pnote":"名称明确数据中心（世纪泓源）"},{"id":"8e581a1011094674a59b9dccecb642cc","num":"62","name":"九永高速持有型不动产资产支持专项计划（第一次扩募并新购入基础设施项目）","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":23.1,"status":"4","up":"2025-12-30","acc":"2025-12-08","origin":"中交一公局集团有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确高速（九永高速）"},{"id":"2d2e4884bc92462a985ba7757ed59f10","num":"63","name":"太保资产-新黄浦筑梦城保租房持有型不动产资产支持专项计划","mgr":"太保资产","writer":"太平洋资产管理有限责任公司","amt":11.94,"status":"4","up":"2025-12-25","acc":"2025-10-23","origin":"上海新黄浦实业集团股份有限公司","ex":"上交所","ptype":"产权类","psub":"租赁住房","pflag":"","pnote":"名称含保租房（新黄浦筑梦城保租房）"},{"id":"858e70129c204e8ca8a963a0fa00fffa","num":"64","name":"国金资管-观博啟城持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":4.99,"status":"8","up":"2025-12-25","acc":"2025-03-31","origin":"上海康达高地企业管理有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"用户人工确认：观博啟城（周大福旗下）归产业园"},{"id":"2fedfef7b676482a95c4ed32c4043f49","num":"65","name":"中金公司-中铁十五局持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":4.0,"status":"4","up":"2025-12-22","acc":"2025-11-25","origin":"中铁十五局集团有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"用户人工确认：中铁十五局归交通设施"},{"id":"76f7af17f992438a81a9b100c5141a35","num":"66","name":"中国铁工投资分散型商业物业持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":4.5,"status":"4","up":"2025-12-19","acc":"2025-12-05","origin":"银川中铁水务集团有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称明确分散型商业物业（银川中铁水务旗下商业，检索确认）"},{"id":"43180de30031439dbe40687bd3cf41e4","num":"67","name":"泰达航母持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":13.2,"status":"4","up":"2025-12-19","acc":"2025-11-04","origin":"天津泰达集团有限公司,天津泰达城市综合开发投资集团有限公司","ex":"上交所","ptype":"产权类","psub":"文旅类","pflag":"","pnote":"用户人工确认：泰达航母（文旅景区）归文旅类"},{"id":"d88ec5abcd6e4304ba262aa585b4fbde","num":"68","name":"平安证券-铁建投资集团持有型不动产资产支持专项计划","mgr":"平安证券","writer":"平安证券股份有限公司","amt":7.5,"status":"4","up":"2025-12-15","acc":"2025-10-29","origin":"中国铁建投资集团有限公司","ex":"上交所","ptype":"产权类","psub":"办公","pflag":"","pnote":"底层为珠海铁建大厦（商办物业，检索确认）"},{"id":"5a248a9b5dea42b38a9af2c486f60d2e","num":"69","name":"中信建投-中国建筑商业物业持有型不动产资产支持专项计划","mgr":"中信建投证券","writer":"中信建投证券股份有限公司","amt":5.04,"status":"4","up":"2025-12-15","acc":"2025-10-09","origin":"中建地产（天津）有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称明确商业物业（中国建筑商业物业，中建中心）"},{"id":"8fc676d3df944beaa7005fd6bc9e5eb1","num":"70","name":"中信证券-铁建投资集团高速公路第1期持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":26.8,"status":"4","up":"2025-12-11","acc":"2025-10-21","origin":"天津铁建宏图丰创投资合伙企业（有限合伙）","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确高速公路第1期（德商高速，检索确认）"},{"id":"SZSE_3C1DB3F91A9648DAB110E3DA2CBE449D","num":"71","name":"兴证基实-碧澄能发新能源持有型不动产资产支持专项计划（碳中和）","mgr":"兴证资管","amt":3.2,"status":"4","up":"2025-12-09","acc":"2025-09-30","origin":"杭州碧澄能源发展有限公司","writer":"兴证证券资产管理有限公司","ex":"深交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源（碧澄能发），光伏/风电"},{"id":"c323cc5aa0b5413f98321411ced9b498","num":"72","name":"中金-京能国际能源基础设施持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":11.61,"status":"4","up":"2025-12-08","acc":"2025-09-19","origin":"京能国际能源发展（北京）有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含能源基础设施（京能国际），光伏/风电（检索确认）"},{"id":"e1b855cf474b4483aa1af044b24f93b6","num":"73","name":"中金-保利发展商业持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":16.58,"status":"4","up":"2025-12-04","acc":"2025-09-24","origin":"广东保利商业发展有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称明确商业（保利发展商业，检索确认）"},{"id":"217c2078fe384f489fb2f213030cfda8","num":"74","name":"国泰海通资管-中泰-天津轨交商业持有型不动产资产支持专项计划","mgr":"国泰海通资管","writer":"上海国泰海通证券资产管理有限公司","amt":6.04,"status":"4","up":"2025-12-03","acc":"2025-09-12","origin":"天津津轨资产管理有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"底层为天津国际航运大厦（商业物业，检索确认）"},{"id":"33d26d6eac804b31abce01535ef37b57","num":"75","name":"中信证券-佛清从高速持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":45.48,"status":"4","up":"2025-12-02","acc":"2025-10-27","origin":"中电建路桥集团有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确高速（佛清从高速，检索确认）"},{"id":"312a1337f4394ab59fee3e16b4cf1607","num":"76","name":"中信建投-明阳智能新能源持有型不动产资产支持专项计划","mgr":"中信建投证券","writer":"中信建投证券股份有限公司","amt":8.13,"status":"4","up":"2025-12-02","acc":"2025-09-26","origin":"北京洁源新能投资有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源（明阳智能），风电场（检索确认）"},{"id":"66b5f08f3f41476b9f785c2d0f596d7b","num":"77","name":"中信建投-电建电投崇信乡村振兴持有型不动产资产支持专项计划（支持西部大开发）","mgr":"中信建投证券","writer":"中信建投证券股份有限公司","amt":30.12,"status":"4","up":"2025-11-28","acc":"2025-08-26","origin":"中电建电力投资集团有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"底层为崇信县火电项目及配套设施（检索确认）"},{"id":"SZSE_53025762E07841769C0752128D5803F3","num":"78","name":"国泰海通资管-青岛西海岸公用事业持有型不动产资产支持专项计划","mgr":"国泰海通资管","amt":10.0,"status":"4","up":"2025-11-26","acc":"2025-09-11","origin":"青岛西海岸公用事业集团有限公司","writer":"上海国泰海通证券资产管理有限公司","ex":"深交所","ptype":"经营权类","psub":"市政生态","pflag":"","pnote":"名称含公用事业（青岛西海岸公用事业）"},{"id":"f400fac68939483fb2a6577930181456","num":"79","name":"铁建昆仑秀松高速持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":8.1,"status":"4","up":"2025-11-25","acc":"2025-09-16","origin":"天津铁建宏图丰创投资合伙企业（有限合伙）","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确高速（秀松高速，检索确认）"},{"id":"36eadfbbc67f4ff9866df503fb2773d0","num":"80","name":"西安经发创新工业园持有型不动产资产支持专项计划","mgr":"东吴证券","writer":"东吴证券股份有限公司","amt":1.41,"status":"4","up":"2025-11-20","acc":"2025-09-09","origin":"西安经开产业园发展集团有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称明确工业园（西安经发创新工业园，检索确认）"},{"id":"4b1f60e601774066bbb96f5ffe8d5861","num":"81","name":"国泰海通资管-临港创新智造产业园持有型不动产资产支持专项计划","mgr":"国泰海通资管","writer":"上海国泰海通证券资产管理有限公司","amt":11.78,"status":"4","up":"2025-11-20","acc":"2025-09-04","origin":"上海临港奉贤经济发展有限公司,MAGNOLIA ENTERPRISES LIMITED","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称明确产业园（临港创新智造产业园，检索确认）"},{"id":"3c372d322d2e4a4ca54c1b2d77aa3fdc","num":"82","name":"华泰-上海中建广场持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":12.46,"status":"4","up":"2025-11-18","acc":"2025-08-18","origin":"上海中建东孚资产管理有限公司","ex":"上交所","ptype":"产权类","psub":"办公","pflag":"","pnote":"底层为上海中建广场商办综合体（检索确认）"},{"id":"a7bae8a2d83544288dcc29dfb90457f7","num":"83","name":"太保资产-天合富家新能源基础设施碳中和绿色持有型不动产资产支持专项计划（乡村振兴）","mgr":"太保资产","writer":"太平洋资产管理有限责任公司","amt":30.45,"status":"4","up":"2025-11-12","acc":"2025-06-09","origin":"天合富家能源股份有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源基础设施（天合富家），户用分布式光伏（检索确认）"},{"id":"23a0510963724938a704512dbf26f4f2","num":"84","name":"中信证券-青岛水务持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":4.77,"status":"4","up":"2025-11-06","acc":"2025-09-18","origin":"青岛水务集团环境能源有限公司","ex":"上交所","ptype":"经营权类","psub":"市政生态","pflag":"","pnote":"名称含水务，青岛市李村河污水处理厂（检索确认）"},{"id":"608a7a39abba40e9b6a2af7681d66f43","num":"85","name":"广连高速持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":150.0,"status":"4","up":"2025-10-22","acc":"2025-08-06","origin":"中交第四航务工程局有限公司,中国公路工程咨询集团有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确高速（广连高速，检索确认）"},{"id":"71d38b93885c4fb8a9da4dfa5258bba6","num":"86","name":"中信建投-外高桥集团持有型不动产资产支持专项计划","mgr":"中信建投证券","writer":"中信建投证券股份有限公司","amt":19.0,"status":"4","up":"2025-09-19","acc":"2025-07-02","origin":"上海外高桥集团股份有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"底层为外高桥4个工业厂房项目（与#4同主体，检索确认）"},{"id":"24cfbda989614db4b858a12f83a0eaec","num":"87","name":"人保资产-中铁诺德持有型不动产资产支持专项计划","mgr":"人保资产","writer":"中国人保资产管理有限公司","amt":25.6,"status":"4","up":"2025-09-19","acc":"2025-03-31","origin":"中铁诺德城市运营服务有限公司","ex":"上交所","ptype":"产权类","psub":"办公","pflag":"","pnote":"底层为中铁诺德中心三期（商办综合体含办公/酒店/商业，检索确认）"},{"id":"SZSE_B97CD5F5352244F1ACC26707A2786005","num":"88","name":"中信证券-四川能源发展清洁能源持有型不动产资产支持专项计划","mgr":"中信证券","amt":24.95,"status":"4","up":"2025-09-15","acc":"2025-07-21","origin":"拉萨金鼎兴能企业管理合伙企业（有限合伙）","writer":"中信证券股份有限公司","ex":"深交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含清洁能源（四川能源发展）"},{"id":"95b846a6aabc48a1ab5e9a168a7f05ee","num":"89","name":"富国资产-首创水务持有型不动产资产支持专项计划","mgr":"富国资产","writer":"富国资产管理（上海）有限公司","amt":7.3,"status":"4","up":"2025-09-09","acc":"2025-07-18","origin":"北京首创生态环保集团股份有限公司","ex":"上交所","ptype":"经营权类","psub":"市政生态","pflag":"","pnote":"名称含水务（首创水务），大连污水处理项目（检索确认）"},{"id":"2e907a8b39a0485184ed03b170fdc10d","num":"90","name":"国金资管-新疆国信持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":95.0,"status":"4","up":"2025-08-29","acc":"2025-04-30","origin":"太仓港协鑫发电有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"底层为新疆准东协鑫火电厂（检索确认）"},{"id":"82a0db8056254a6e81bfaf0684b79026","num":"91","name":"国金资管-吾悦广场持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":10.64,"status":"4","up":"2025-08-15","acc":"2025-05-30","origin":"上海睿硕创企业管理有限公司","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称含吾悦广场（上海青浦吾悦广场，检索确认）"},{"id":"305372b0865a4332a5236bbaac464156","num":"92","name":"建信住房租赁基金持有型不动产资产支持专项计划（2024年第一次扩募并新购入租赁住房项目）","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":6.0,"status":"4","up":"2025-08-08","acc":"2024-12-31","origin":"建信住房租赁基金（有限合伙）,建融安居（北京）股权投资基金（有限合伙）","ex":"上交所","ptype":"产权类","psub":"租赁住房","pflag":"","pnote":"名称明确租赁住房扩募（建信长租，检索确认）"},{"id":"6235cf1b296b424394be359f01201227","num":"93","name":"兴证基实-象屿集团产业园区持有型不动产资产支持专项计划","mgr":"兴证资管","writer":"兴证证券资产管理有限公司","amt":6.0,"status":"4","up":"2025-08-01","acc":"2025-06-03","origin":"厦门象屿集团有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称明确产业园区（象屿集团，厦门跨境电商产业园，检索确认）"},{"id":"9748b85733594cf0884070dc269ac79a","num":"94","name":"国君资管-无锡经济开发区国家传感信息产业园持有型不动产资产支持专项计划","mgr":"国泰君安资管公司","writer":"上海国泰君安证券资产管理有限公司","amt":6.6,"status":"4","up":"2025-07-23","acc":"2025-06-10","origin":"无锡太湖城传感信息中心发展有限公司","ex":"上交所","ptype":"产权类","psub":"产业园","pflag":"","pnote":"名称明确产业园（无锡传感信息产业园，检索确认）"},{"id":"53695","num":"95","name":"国金资管-欢乐颂持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":6.7,"status":"4","up":"2025-06-24","acc":"2024-12-06","origin":"天津润石申威股权投资合伙企业（有限合伙）","ex":"上交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称含欢乐颂（购物中心/商业）"},{"id":"1ac6d26a734c4aefb3e327fa9dc96efe","num":"96","name":"泰康资产-财通-远景新能源持有型不动产资产支持专项计划（碳中和）","mgr":"泰康资产","writer":"泰康资产管理有限责任公司","amt":2.85,"status":"4","up":"2025-05-19","acc":"2025-03-31","origin":"远景创业投资（海南）有限公司","ex":"上交所","ptype":"经营权类","psub":"能源","pflag":"","pnote":"名称含新能源（远景新能源）"},{"id":"5b048a3742404af4b74fb5e87851913e","num":"97","name":"太保资产-世纪互联数据中心持有型不动产资产支持专项计划","mgr":"太保资产","writer":"太平洋资产管理有限责任公司","amt":8.6,"status":"4","up":"2025-05-09","acc":"2025-02-21","origin":"北京世纪互联宽带数据中心有限公司","ex":"上交所","ptype":"产权类","psub":"数据中心","pflag":"","pnote":"名称明确数据中心（世纪互联）"},{"id":"2e46db5dcd7943f899eb9f7e35c49209","num":"98","name":"国金资管-基汇资本持有型不动产资产支持专项计划","mgr":"国金资管","writer":"国金证券资产管理有限公司","amt":8.67,"status":"2","up":"2025-04-22","acc":"2025-02-19","origin":"基睦(香港)有限公司","ex":"上交所","ptype":"产权类","psub":"办公","pflag":"","pnote":"用户人工确认：基汇资本归办公"},{"id":"52840","num":"99","name":"广明高速持有型不动产资产支持专项计划","mgr":"人保资产","writer":"中国人保资产管理有限公司","amt":25.3,"status":"4","up":"2025-03-12","acc":"2024-11-21","origin":"中交资产管理有限公司,中交投资有限公司,中交第四航务工程局有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确高速（广明高速）"},{"id":"47475","num":"100","name":"中信证券-万国数据2025年第1期数据中心持有型不动产资产支持专项计划","mgr":"中信证券","writer":"中信证券股份有限公司","amt":16.09,"status":"4","up":"2025-01-23","acc":"2024-07-18","origin":"万数（上海）投资有限公司","ex":"上交所","ptype":"产权类","psub":"数据中心","pflag":"","pnote":"名称明确数据中心（万国数据）"},{"id":"52926","num":"101","name":"平安证券-中国铁建第一期持有型不动产资产支持专项计划","mgr":"平安证券","writer":"平安证券股份有限公司","amt":8.58,"status":"4","up":"2024-12-25","acc":"2024-11-26","origin":"中铁二十五局集团有限公司","ex":"上交所","ptype":"产权类","psub":"办公","pflag":"","pnote":"底层为中铁二十五局南方铁道大厦（检索确认）"},{"id":"50209","num":"102","name":"九永高速持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":22.0,"status":"4","up":"2024-11-22","acc":"2024-09-23","origin":"中交一公局集团有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确高速（九永高速扩募）"},{"id":"SZSE_1220D502C98648E9B80207112269B2B0","num":"103","name":"中信证券-越秀商业持有型不动产资产支持专项计划","mgr":"中信证券","amt":14.13,"status":"4","up":"2024-10-25","acc":"2024-09-20","origin":"广州仁合经济信息咨询有限公司","writer":"中信证券股份有限公司","ex":"深交所","ptype":"产权类","psub":"消费","pflag":"","pnote":"名称明确商业（越秀商业，广州ICC办公+停车场，检索确认）"},{"id":"46546","num":"104","name":"安江高速持有型不动产资产支持专项计划","mgr":"中金公司","writer":"中国国际金融股份有限公司","amt":49.56,"status":"4","up":"2024-07-22","acc":"2024-06-26","origin":"中交资产管理有限公司,中交第二公路工程局有限公司,中交第二公路勘察设计研究院有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确高速（安江高速）"},{"id":"36404","num":"105","name":"华泰-中交路建清西大桥持有型不动产资产支持专项计划","mgr":"华泰资管","writer":"华泰证券（上海）资产管理有限公司","amt":19.6,"status":"4","up":"2023-12-11","acc":"2023-11-13","origin":"中交路桥建设有限公司","ex":"上交所","ptype":"经营权类","psub":"交通设施","pflag":"","pnote":"名称明确大桥（清西大桥，检索确认）"}];
+const FETCH_META = {sqlId:"ZQ_XMLB", key:"持有型不动产", endpoint:"https://query.sse.com.cn/sseQuery/commonSoaQuery.do", snapshot:"2026-08-06"};
+var __REITS_SNAPSHOT__ = null;
+var __REITS_SNAPSHOT_DATE__ = null;
+
+const STATUS_LABEL = {"0":"已申报","1":"已受理","2":"已反馈","3":"已接收反馈意见","4":"通过","5":"未通过","8":"终止","9":"中止","10":"已回复交易所意见","11":"提交注册","12":"注册生效"};
+const STATUS_CLS = {"0":"b-zz","1":"b-sb","2":"b-fb","3":"b-fb","4":"b-ok","5":"b-zz","8":"b-stop","9":"b-zz","10":"b-fb","11":"b-sb","12":"b-ok"};
+const PRESET_TAGS = [
+  {k:"focus", label:"重点关注", cls:"m-focus"},
+  {k:"audited", label:"已审核", cls:"m-audited"},
+  {k:"follow", label:"待跟进", cls:"m-follow"}
+];
+
+/* ============================================================
+ * 2. localStorage 双写
+ * ========================================================== */
+const K_DATA="reits_dash_data_v1", K_DATA_BAK="reits_dash_data_v1_bak";
+const K_MARK="reits_dash_mark_v1", K_MARK_BAK="reits_dash_mark_v1_bak";
+const K_CUST="reits_dash_custtags_v1", K_CUST_BAK="reits_dash_custtags_v1_bak";
+function savePair(k,bak,v){ try{ localStorage.setItem(k,v); localStorage.setItem(bak,v);}catch(e){} }
+function loadPair(k,bak,fallback){
+  try{
+    const v=localStorage.getItem(k);
+    if(v!==null) return v;
+    const b=localStorage.getItem(bak);
+    if(b!==null){ localStorage.setItem(k,b); return b; }
+  }catch(e){}
+  return fallback;
+}
+function toast(msg,isErr){
+  const t=document.getElementById("toast");
+  t.textContent=msg; t.className="toast show"+(isErr?" err":"");
+  clearTimeout(t._h); t._h=setTimeout(()=>{t.className="toast"},2400);
+}
+
+/* ============================================================
+ * 3. 状态
+ * ========================================================== */
+let DATA=[];
+let marks={};
+let custTags=[];
+let state={
+  kw:"", tag:null, exSet:new Set(),   /* exSet: 交易所多选（空=全部；顶部 Tab 与左侧多选联动） */
+  status:new Set(), origin:new Set(), writer:new Set(), mgr:new Set(),
+  amtMin:null, amtMax:null,
+  accFrom:null, accTo:null, upFrom:null, upTo:null,
+  sortKey:"up", sortDir:-1
+};
+let filtered=[];
+
+/* 当前生效数据集（随交易所 Tab/多选过滤） */
+function activeData(){
+  return state.exSet.size ? DATA.filter(d=>state.exSet.has(d.ex)) : DATA;
+}
+
+let EXTERNAL_SNAPSHOT = null;
+let EXTERNAL_SNAPSHOT_DATE = null;
+/* 数据优先级：外部快照(reits_snapshot.js) → localStorage → 内嵌 */
+function loadData(){
+  let src=null;
+  if(EXTERNAL_SNAPSHOT && Array.isArray(EXTERNAL_SNAPSHOT) && EXTERNAL_SNAPSHOT.length){
+    src=EXTERNAL_SNAPSHOT;
+    if(EXTERNAL_SNAPSHOT_DATE) FETCH_META.snapshot=EXTERNAL_SNAPSHOT_DATE;
+  }
+  if(!src){
+    try{
+      const raw=localStorage.getItem(K_DATA);
+      if(raw){ const arr=JSON.parse(raw); if(Array.isArray(arr)&&arr.length) src=arr; }
+    }catch(e){}
+  }
+  if(!src){
+    try{
+      const bak=localStorage.getItem(K_DATA_BAK);
+      if(bak){ const arr=JSON.parse(bak); if(Array.isArray(arr)&&arr.length){ src=arr; localStorage.setItem(K_DATA,bak);} }
+    }catch(e){}
+  }
+  if(!src) src=RAW_DATA;
+  DATA=src;
+  document.getElementById("snapshotDate").textContent=FETCH_META.snapshot;
+}
+function loadMarks(){
+  try{ marks=JSON.parse(loadPair(K_MARK,K_MARK_BAK,"{}"))||{}; }catch(e){ marks={}; }
+  try{ custTags=JSON.parse(loadPair(K_CUST,K_CUST_BAK,"[]"))||[]; }catch(e){ custTags=[]; }
+}
+function persistMarks(){ savePair(K_MARK,K_MARK_BAK,JSON.stringify(marks)); savePair(K_CUST,K_CUST_BAK,JSON.stringify(custTags)); }
+function allTagDefs(){
+  const map={};
+  PRESET_TAGS.forEach(t=>map[t.k]=t);
+  custTags.forEach(t=>map[t.k]=t);
+  return map;
+}
+
+/* ============================================================
+ * 4. 多选下拉组件（panel 用 fixed 定位，避开父级 overflow 裁剪）
+ * ========================================================== */
+function buildMulti(elId, opts, getSel, onSet){
+  const el=document.getElementById(elId);
+  /* 最新参数存元素属性，事件监听只绑定一次（防止 refreshFilterSources 重复调用叠加监听器） */
+  el._opts=opts; el._getSel=getSel; el._onSet=onSet;
+  const renderHead=()=>{
+    const opts=el._opts, getSel=el._getSel;
+    const sel=getSel();
+    const names=opts.filter(o=>sel.has(o.v)).map(o=>o.l);
+    let chips="";
+    if(names.length) chips=names.slice(0,2).map(n=>`<span class="chip">${esc(n)}</span>`).join("")+(names.length>2?`<span class="chip">+${names.length-2}</span>`:"");
+    el.innerHTML=`<div class="mt-head"><div class="chips">${chips||`<span class="placeholder">全部</span>`}</div><span class="arrow">▼</span></div>
+      <div class="panel">
+        <div class="opt opt-all"><input type="checkbox" ${sel.size===0?"checked":""} id="${elId}-all"><span>全部</span></div>
+        ${opts.map((o,i)=>`<div class="opt" data-i="${i}"><input type="checkbox" data-i="${i}" ${sel.has(o.v)?"checked":""}><span>${esc(o.l)}</span><span class="cnt">${o.c||""}</span></div>`).join("")}
+      </div>`;
+  };
+  const positionPanel=()=>{
+    const panel=el.querySelector(".panel");
+    if(!panel) return;
+    const r=el.getBoundingClientRect();
+    panel.style.left=r.left+"px";
+    panel.style.width=r.width+"px";
+    const panelH=Math.min(230, panel.scrollHeight);
+    if(window.innerHeight - r.bottom < panelH+8 && r.top > panelH+8){
+      panel.style.top=(r.top-4)+"px";
+      panel.style.transform="translateY(-100%)";
+    }else{
+      panel.style.top=(r.bottom+4)+"px";
+      panel.style.transform="none";
+    }
+  };
+  if(!el._multiBound){
+    el.addEventListener("click",(e)=>{
+      const opts=el._opts, getSel=el._getSel, onSet=el._onSet;
+      if(e.target.closest(".mt-head")){
+        const wasOpen=el.classList.contains("open");
+        document.querySelectorAll(".multi.open").forEach(m=>m.classList.remove("open"));
+        if(!wasOpen){ el.classList.add("open"); requestAnimationFrame(positionPanel); }
+        return;
+      }
+      const cb=e.target.closest("input");
+      if(!cb) return;
+      const sel=getSel();
+      if(cb.id===elId+"-all"){ sel.clear(); }
+      else{
+        const o=opts[+cb.dataset.i];
+        if(!o) return;
+        if(sel.has(o.v)) sel.delete(o.v); else sel.add(o.v);
+      }
+      onSet(sel); renderHead();
+      requestAnimationFrame(positionPanel);
+      e.stopPropagation();
+    });
+    document.addEventListener("click",(e)=>{
+      if(!el.contains(e.target)) el.classList.remove("open");
+    });
+    window.addEventListener("resize",()=>{
+      document.querySelectorAll(".multi.open").forEach(m=>{ const p=m.querySelector(".panel"); if(p){ const r=m.getBoundingClientRect(); p.style.left=r.left+"px"; p.style.width=r.width+"px"; }});
+    });
+    el._multiBound=true;
+  }
+  renderHead();
+  return el;
+}
+
+/* ============================================================
+ * 5. 工具
+ * ========================================================== */
+function esc(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function numFmt(v){ return v==null||isNaN(v)?"—":Number(v).toLocaleString("zh-CN",{maximumFractionDigits:2}); }
+function dateFmt(d){ return d||"—"; }
+function splitMulti(s){ return String(s||"").split(/[,，]/).map(x=>x.trim()).filter(Boolean); }
+
+/* ============================================================
+ * 6. 统计 & 图表
+ * ========================================================== */
+function renderStats(){
+  const cur=activeData();
+  const total=cur.length;
+  const ok=cur.filter(d=>String(d.status)==="4").length;
+  const fb=cur.filter(d=>String(d.status)==="2").length;
+  const sum=cur.reduce((a,d)=>a+((d.amt&&!isNaN(d.amt))?d.amt:0),0);
+  /* 分所小注 */
+  const cntSse=DATA.filter(d=>d.ex==="上交所").length;
+  const cntSzse=DATA.filter(d=>d.ex==="深交所").length;
+  const subNote=state.exSet.size===1
+    ? `当前${[...state.exSet][0]}`
+    : `上交所 ${cntSse} · 深交所 ${cntSzse}`;
+  document.getElementById("statsRow").innerHTML=`
+    <div class="stat"><div class="num">${total}<small>个</small></div><div class="lab">机构间REITs项目总数<br><b style="font-weight:500;color:var(--ink-2);font-size:11px">${subNote}</b></div></div>
+    <div class="stat"><div class="num">${ok}<small>个</small></div><div class="lab">审核通过</div></div>
+    <div class="stat"><div class="num">${fb}<small>个</small></div><div class="lab">已反馈</div></div>
+    <div class="stat"><div class="num">${sum.toLocaleString("zh-CN",{maximumFractionDigits:1})}<small>亿元</small></div><div class="lab">拟发行金额合计</div></div>`;
+}
+
+/* 状态环形图：圆环（stroke 描边弧线，中心留空放数字） */
+function renderChartStatus(){
+  const cur=activeData();
+  /* 仅显示实际出现过的状态，按数量降序 */
+  const counts=Object.create(null);
+  cur.forEach(d=>{ const k=String(d.status); counts[k]=(counts[k]||0)+1; });
+  const items=Object.keys(counts).map(k=>({k,label:STATUS_LABEL[k]||k,n:counts[k]})).sort((a,b)=>b.n-a.n);
+  /* 品牌配色档位（4 档明度差加大）：主色 / 中橙 / 深档 / 浅橙 */
+  const HOLD_PALETTE=["#d94016","#e88a6b","#9c2e12","#f2a583"];
+  items.forEach((it,i)=>{ it.color=HOLD_PALETTE[Math.min(i,HOLD_PALETTE.length-1)]; });
+  const total=cur.length;
+  /* 圆环：r=92 为描边中心轴，stroke-width=26 → 环宽 26（内圈 79，外圈 105），中心空白放数字 */
+  const cx=105,cy=105,r=92,sw=26;
+  /* 段间 0.6° 间隙，让分块更清晰 */
+  const PAD=0.6*Math.PI/180;
+  let acc=0;
+  const segs=items.map(it=>{
+    const frac=it.n/total;
+    const a0=acc*2*Math.PI-Math.PI/2+PAD;
+    acc+=frac;
+    const a1=acc*2*Math.PI-Math.PI/2-PAD;
+    const large=frac>0.5?1:0;
+    const x0=cx+r*Math.cos(a0),y0=cy+r*Math.sin(a0);
+    const x1=cx+r*Math.cos(a1),y1=cy+r*Math.sin(a1);
+    /* stroke 描边弧线，不闭合、不画半径线 → 真正的圆环段 */
+    const d=`M ${x0.toFixed(2)} ${y0.toFixed(2)} A ${r} ${r} 0 ${large} 1 ${x1.toFixed(2)} ${y1.toFixed(2)}`;
+    return {d,color:it.color,n:it.n,label:it.label};
+  });
+  const svg=`<svg viewBox="0 0 210 210">
+    ${segs.map(s=>`<path d="${s.d}" fill="none" stroke="${s.color}" stroke-width="${sw}"/>`).join("")}
+    <text x="105" y="103" text-anchor="middle" font-size="30" font-weight="700" fill="#2a2622">${total}</text>
+    <text x="105" y="125" text-anchor="middle" font-size="11.5" fill="#6b645c">项目总数</text>
+  </svg>`;
+  document.getElementById("chartStatus").innerHTML=svg;
+  document.getElementById("legendStatus").innerHTML=items.map(it=>
+    `<span class="li"><span class="dot" style="background:${it.color}"></span><span class="nm">${esc(it.label)}</span><span class="ct">${it.n}</span></span>`
+  ).join("");
+}
+
+/* TOP 计划管理人（按金额 / 单量 切换，TOP 10，品牌色实心柱） */
+let TOP_MODE="amount";  // 全局切换状态
+function renderChartTopMgr(){
+  const cur=activeData();
+  const map=new Map();  // writer -> {count, amount}
+  cur.forEach(d=>{
+    splitMulti(d.writer).forEach(w=>{
+      const e=map.get(w)||{count:0,amount:0};
+      e.count++;
+      e.amount+=d.amt||0;
+      map.set(w,e);
+    });
+  });
+  const arr=[...map.entries()];
+  /* 按当前模式排序 */
+  const sorted=TOP_MODE==="amount"
+    ? arr.filter(([,v])=>v.amount>0).sort((a,b)=>b[1].amount-a[1].amount)
+    : arr.sort((a,b)=>b[1].count-a[1].count);
+  const top=sorted.slice(0,10);
+  if(!top.length){ document.getElementById("chartTopMgr").innerHTML='<div style="color:var(--ink-2);font-size:12px;padding:10px 0">无数据</div>'; return; }
+  const max=top[0][1][TOP_MODE];
+  document.getElementById("chartTopMgr").innerHTML=top.map(([k,v])=>{
+    const val=v[TOP_MODE];
+    const pct=Math.max(2, val/max*100);
+    const label=TOP_MODE==="amount"
+      ? (val>=1?val.toFixed(1)+"亿":(val*10).toFixed(0)+"千万")
+      : val+"单";
+    return `<div class="bar-row" title="${esc(k)} · ${label}">
+      <span class="nm" title="${esc(k)}">${esc(k)}</span>
+      <span class="bar"><span class="bar-fill" style="width:${pct}%"></span></span>
+      <span class="bar-val">${label}</span>
+    </div>`;
+  }).join("");
+}
+
+/* 近12个月受理趋势（按 acc 聚合，可切金额/单量，品牌渐变色条） */
+let TREND_MODE="amount";  // 默认金额模式，与 HTML 按钮默认 on 一致
+function renderChartTrend(){
+  const cur=activeData();
+  const map=new Map();
+  cur.forEach(d=>{
+    const acc=d.acc||"";
+    if(!acc) return;
+    const ym=acc.slice(0,7);
+    if(!/^\d{4}-\d{2}$/.test(ym)) return;
+    const e=map.get(ym)||{ym,count:0,amount:0};
+    e.count++;
+    e.amount+=d.amt||0;
+    map.set(ym,e);
+  });
+  /* 取最近 12 个月（含空月） */
+  const now=new Date();
+  const months=[];
+  for(let i=11;i>=0;i--){
+    const dt=new Date(now.getFullYear(),now.getMonth()-i,1);
+    const ym=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0");
+    const e=map.get(ym)||{ym,count:0,amount:0};
+    months.push(e);
+  }
+  const max=Math.max(1,...months.map(m=>m[TREND_MODE]));
+  document.getElementById("chartTrend").innerHTML=months.map(m=>{
+    const val=m[TREND_MODE];
+    const pct=Math.max(2, val/max*100);
+    const label=TREND_MODE==="amount"
+      ? (val>=1?val.toFixed(1)+"亿":(val*10).toFixed(0)+"千万")
+      : val+"单";
+    return `<div class="trend-row">
+      <span class="ym">${m.ym}</span>
+      <span class="bar"><span class="bar-fill" style="width:${pct}%"></span></span>
+      <span class="ct">${label}</span>
+    </div>`;
+  }).join("");
+}
+
+/* ============================================================
+ * 7. 过滤 + 排序 + 渲染
+ * ========================================================== */
+function applyFilters(){
+  const kw=state.kw.trim().toLowerCase();
+  filtered=DATA.filter(d=>{
+    if(state.exSet.size && !state.exSet.has(d.ex)) return false;   /* 交易所过滤（Tab/多选联动） */
+    if(state.tag!=null){
+      const ts=marks[d.id]||[];
+      if(!ts.includes(state.tag)) return false;
+    }
+    if(kw){
+      const hay=(d.name+" "+(d.num||"")+" "+d.mgr+" "+d.writer+" "+d.origin).toLowerCase();
+      if(!hay.includes(kw)) return false;
+    }
+    if(state.status.size && !state.status.has(String(d.status))) return false;
+    if(state.mgr.size){
+      const ms=splitMulti(d.mgr);
+      if(!ms.some(m=>state.mgr.has(m))) return false;
+    }
+    if(state.writer.size){
+      const ws=splitMulti(d.writer);
+      if(!ws.some(w=>state.writer.has(w))) return false;
+    }
+    if(state.origin.size){
+      const os=splitMulti(d.origin);
+      if(!os.some(o=>state.origin.has(o))) return false;
+    }
+    if(state.amtMin!=null&&(d.amt==null||d.amt<state.amtMin)) return false;
+    if(state.amtMax!=null&&(d.amt==null||d.amt>state.amtMax)) return false;
+    const acc=d.acc||"";
+    if(state.accFrom&&acc<state.accFrom) return false;
+    if(state.accTo&&acc>state.accTo) return false;
+    const up=d.up||"";
+    if(state.upFrom&&up<state.upFrom) return false;
+    if(state.upTo&&up>state.upTo) return false;
+    return true;
+  });
+  /* 默认排序（更新日期降序）：三级 —— 更新日期 → 受理日期 → 发行金额，均降序 */
+  if(state.sortKey==="up" && state.sortDir===-1){
+    filtered.sort((a,b)=>{
+      const upCmp=(b.up||"").localeCompare(a.up||"");
+      if(upCmp!==0) return upCmp;
+      const accCmp=(b.acc||"").localeCompare(a.acc||"");
+      if(accCmp!==0) return accCmp;
+      const va=a.amt==null?-1:a.amt, vb=b.amt==null?-1:b.amt;
+      return vb-va;
+    });
+    return;
+  }
+  filtered.sort((a,b)=>{
+    const k=state.sortKey;
+    let va=a[k],vb=b[k];
+    if(k==="amt"){
+      va=va==null?-1:va; vb=vb==null?-1:vb;
+      return (va-vb)*state.sortDir;
+    }
+    va=String(va==null?"":va); vb=String(vb==null?"":vb);
+    return va.localeCompare(vb,"zh-CN",{numeric:true})*state.sortDir;
+  });
+}
+const COLS=[
+  {k:"ex", t:"交易所", w:"90", nosort:true},
+  {k:"name", t:"债券名称", w:"280"},
+  {k:"origin", t:"原始权益人", w:"190"},
+  {k:"mgr", t:"承销商/管理人", w:"120"},
+  {k:"writer", t:"计划管理人", w:"200"},
+  {k:"atype", t:"品种", w:"110", nosort:true},
+  {k:"amt", t:"拟发行金额(亿元)", w:"120"},
+  {k:"status", t:"项目状态", w:"90"},
+  {k:"up", t:"更新日期", w:"95"},
+  {k:"acc", t:"受理日期", w:"95"}
+];
+function renderTable(){
+  const tagDefs=allTagDefs();
+  document.getElementById("thead").innerHTML=`<tr>
+    <th style="width:110px">标记</th>
+    <th style="width:44px">编号</th>
+    ${COLS.map(c=>{
+      const on=state.sortKey===c.k;
+      const arrow=on?(state.sortDir===1?"▲":"▼"):"";
+      const cls=c.nosort?"":"sortable";
+      return `<th class="${cls}" ${c.nosort?"":"data-k=\""+c.k+"\""} style="min-width:${c.w}px">${c.t}<span class="s-arrow">${arrow}</span></th>`;
+    }).join("")}
+    <th style="width:70px"></th>
+  </tr>`;
+  const tbody=document.getElementById("tbody");
+  if(!filtered.length){
+    tbody.innerHTML=`<tr><td colspan="13"><div class="no-data"><div class="big">◌</div>没有符合条件的项目<br><span style="font-size:12px">请调整筛选条件或清除筛选</span></div></td></tr>`;
+  }else{
+    tbody.innerHTML=filtered.map((d,i)=>{
+      const ts=marks[d.id]||[];
+      const markHtml=ts.map(k=>{
+        const def=tagDefs[k];
+        return def?`<span class="mark-badge ${def.cls}">${esc(def.label)}</span>`:"";
+      }).join("")||"<span style='color:#b8b1a6;font-size:11px'>—</span>";
+      const cls=ts.length?"marked":"";
+      const ptype=`<span class="p-badge p-reits">持有型不动产</span>`;
+      const exHtml=d.ex==="深交所"
+        ? `<span class="ex-badge ex-szse">深交所</span>`
+        : `<span class="ex-badge ex-sse">上交所</span>`;
+      const st=STATUS_LABEL[d.status]||d.status;
+      const stCls=STATUS_CLS[d.status]||"b-zz";
+      return `<tr class="${cls}" data-id="${esc(d.id)}">
+        <td>${markHtml}</td>
+        <td class="date">${esc(d.num||"—")}</td>
+        <td>${exHtml}</td>
+        <td class="name" title="${esc(d.name)}">${esc(d.name)}</td>
+        <td><span class="multi-line" title="${esc(d.origin)}">${esc(d.origin)}</span></td>
+        <td><span class="multi-line" title="${esc(d.mgr)}">${esc(d.mgr)}</span></td>
+        <td><span class="multi-line" title="${esc(d.writer)}">${esc(d.writer)}</span></td>
+        <td>${ptype}</td>
+        <td class="amount">${numFmt(d.amt)}</td>
+        <td><span class="badge ${stCls}">${esc(st)}</span></td>
+        <td class="date">${dateFmt(d.up)}</td>
+        <td class="date">${dateFmt(d.acc)}</td>
+        <td><button class="mark-btn ${ts.length?"on":""}" data-id="${esc(d.id)}">标 记</button></td>
+      </tr>`;
+    }).join("");
+  }
+  document.getElementById("showCount").textContent=filtered.length;
+  renderFilterDesc();
+}
+function renderFilterDesc(){
+  const parts=[];
+  if(state.tag){ const def=allTagDefs()[state.tag]; if(def) parts.push(`标记:${def.label}`); }
+  if(state.status.size) parts.push("状态:"+[...state.status].map(v=>STATUS_LABEL[v]).join("/"));
+  if(state.origin.size) parts.push(`原始权益人${state.origin.size}家`);
+  if(state.writer.size) parts.push(`计划管理人${state.writer.size}家`);
+  if(state.mgr.size) parts.push(`承销商${state.mgr.size}家`);
+  if(state.amtMin!=null||state.amtMax!=null) parts.push("金额区间");
+  if(state.accFrom||state.accTo) parts.push("受理日期区间");
+  if(state.upFrom||state.upTo) parts.push("更新日期区间");
+  document.getElementById("filterDesc").textContent=parts.length?`（${parts.join(" · ")}）`:"";
+}
+
+/* ============================================================
+ * 8. 排序
+ * ========================================================== */
+document.getElementById("thead").addEventListener("click",(e)=>{
+  const th=e.target.closest("th.sortable");
+  if(!th) return;
+  const k=th.dataset.k;
+  if(state.sortKey===k) state.sortDir*=-1;
+  else{ state.sortKey=k; state.sortDir=(k==="amt"||k==="up"||k==="acc")?-1:1; }
+  applyFilters(); renderTable();
+});
+
+/* ============================================================
+ * 9. 筛选器绑定（过滤掉 count=0 的无效选项）
+ * ========================================================== */
+function refreshFilterSources(){
+  const optCount=(fn)=>DATA.reduce((m,d)=>{fn(d).forEach(v=>{m[v]=(m[v]||0)+1});return m},{});
+  const exOpts=[["上交所","上交所"],["深交所","深交所"]].map(([v,l])=>({v,l,c:optCount(d=>[d.ex])[v]||0}));
+  const statusOpts=Object.keys(STATUS_LABEL).map(k=>({v:k,l:STATUS_LABEL[k],c:optCount(d=>[String(d.status)])[k]||0})).filter(o=>o.c>0);
+  const originOpts=Object.entries(optCount(d=>splitMulti(d.origin))).map(([v,c])=>({v,l:v,c})).sort((a,b)=>b.c-a.c);
+  const writerOpts=Object.entries(optCount(d=>splitMulti(d.writer))).map(([v,c])=>({v,l:v,c})).sort((a,b)=>b.c-a.c);
+  const mgrOpts=Object.entries(optCount(d=>splitMulti(d.mgr))).map(([v,c])=>({v,l:v,c})).sort((a,b)=>b.c-a.c);
+  /* 交易所多选（与顶部 Tab 共享 state.exSet） */
+  buildMulti("multi-ex",exOpts,()=>state.exSet,(s)=>{
+    state.exSet=s;
+    /* 同步顶部 Tab 高亮：0 或 2 个选中 → 全部；1 个 → 对应所 */
+    const ex=s.size===1?[...s][0]:null;
+    document.querySelectorAll("#exTabs button").forEach(b=>b.classList.toggle("on",(b.dataset.ex||null)===ex));
+    applyFilters(); renderTable();
+  });
+  buildMulti("multi-status",statusOpts,()=>state.status,(s)=>{state.status=s;applyFilters();renderTable();});
+  buildMulti("multi-origin",originOpts,()=>state.origin,(s)=>{state.origin=s;applyFilters();renderTable();});
+  buildMulti("multi-writer",writerOpts,()=>state.writer,(s)=>{state.writer=s;applyFilters();renderTable();});
+  buildMulti("multi-mgr",mgrOpts,()=>state.mgr,(s)=>{state.mgr=s;applyFilters();renderTable();});
+}
+function renderTagRow(){
+  const defs=allTagDefs();
+  const counts={};
+  Object.values(marks).flat().forEach(k=>{counts[k]=(counts[k]||0)+1});
+  const html=`<button class="tag-btn ${state.tag==null?"on":""}" data-tag="">全部</button>`+
+    Object.entries(defs).map(([k,d])=>`<button class="tag-btn ${state.tag===k?"on":""}" data-tag="${k}">${esc(d.label)}${counts[k]?` · ${counts[k]}`:""}</button>`).join("");
+  document.getElementById("tagRow").innerHTML=html;
+  document.getElementById("tagFilterHint").textContent=state.tag?allTagDefs()[state.tag]?.label:"";
+}
+document.getElementById("tagRow").addEventListener("click",(e)=>{
+  const b=e.target.closest(".tag-btn"); if(!b) return;
+  state.tag=b.dataset.tag||null;
+  renderTagRow(); applyFilters(); renderTable();
+});
+document.getElementById("kw").addEventListener("input",(e)=>{ state.kw=e.target.value; applyFilters(); renderTable(); });
+function bindNum(id,key){ document.getElementById(id).addEventListener("input",(e)=>{ const v=e.target.value; state[key]=v===""?null:Number(v); applyFilters(); renderTable(); }); }
+bindNum("amtMin","amtMin"); bindNum("amtMax","amtMax");
+function bindDate(id,key){ document.getElementById(id).addEventListener("change",(e)=>{ state[key]=e.target.value||null; applyFilters(); renderTable(); }); }
+bindDate("accFrom","accFrom"); bindDate("accTo","accTo"); bindDate("upFrom","upFrom"); bindDate("upTo","upTo");
+
+document.getElementById("btnResetFilters").addEventListener("click",()=>{
+  state.kw=""; state.tag=null; state.exSet.clear();
+  state.status.clear(); state.origin.clear(); state.writer.clear(); state.mgr.clear();
+  state.amtMin=state.amtMax=null;
+  state.accFrom=state.accTo=state.upFrom=state.upTo=null;
+  document.getElementById("kw").value="";
+  ["amtMin","amtMax"].forEach(id=>document.getElementById(id).value="");
+  ["accFrom","accTo","upFrom","upTo"].forEach(id=>document.getElementById(id).value="");
+  document.querySelectorAll("#exTabs button").forEach(b=>b.classList.toggle("on",!b.dataset.ex));
+  refreshFilterSources(); renderTagRow(); applyFilters(); renderTable();
+});
+document.getElementById("btnResetView").addEventListener("click",()=>{
+  document.getElementById("btnResetFilters").click();
+  state.sortKey="up"; state.sortDir=-1;
+  setExTab(null);
+  applyFilters(); renderTable();
+  toast("已重置筛选条件与排序（更新日期降序），标记标签保留");
+});
+
+/* ============================================================
+ * 9.5 交易所 Tab 切换（与左侧多选 multi-ex 联动：共享 state.exSet）
+ * ========================================================== */
+function setExTab(ex){
+  state.exSet=ex?new Set([ex]):new Set();
+  document.querySelectorAll("#exTabs button").forEach(b=>{
+    const active=(b.dataset.ex||null)===ex;
+    b.classList.toggle("on", active);
+  });
+  refreshFilterSources(); renderStats(); renderTagRow();
+  renderChartStatus(); renderChartTopMgr(); renderChartTrend();
+  applyFilters(); renderTable();
+}
+document.getElementById("exTabs").addEventListener("click",(e)=>{
+  const b=e.target.closest("button[data-ex]");
+  if(!b) return;
+  setExTab(b.dataset.ex||null);
+});
+
+/* ============================================================
+ * 10. 标记功能（顶部按钮 + 行右键 两入口，复用同一逻辑）
+ * ========================================================== */
+function buildMarkUI(rootSel, optionsContainerSel, newValSel, addBtnSel, pop){
+  const defs=allTagDefs();
+  const id=pop.dataset.activeId;
+  const ts=marks[id]||[];
+  document.querySelector(optionsContainerSel).innerHTML=Object.entries(defs).map(([k,d])=>
+    `<div class="opt" data-k="${k}"><input type="checkbox" data-k="${k}" ${ts.includes(k)?"checked":""}><span class="mark-badge ${d.cls}">${esc(d.label)}</span></div>`).join("");
+}
+function openMarkAt(pop, optionsSel, id, x, y){
+  pop.dataset.activeId=id;
+  const defs=allTagDefs();
+  const ts=marks[id]||[];
+  document.querySelector(optionsSel).innerHTML=Object.entries(defs).map(([k,d])=>
+    `<div class="opt" data-k="${k}"><input type="checkbox" data-k="${k}" ${ts.includes(k)?"checked":""}><span class="mark-badge ${d.cls}">${esc(d.label)}</span></div>`).join("");
+  pop.classList.add("show");
+  pop.style.left=Math.min(x,window.innerWidth-220)+"px";
+  pop.style.top=Math.min(y,window.innerHeight-260)+"px";
+}
+function closeMarkPop(){ document.querySelectorAll(".mark-pop.show, .ctx-menu.show").forEach(p=>p.classList.remove("show")); }
+
+/* 顶部按钮触发 */
+const markPop=document.getElementById("markPop");
+let activeBtnRect=null;
+document.getElementById("tbody").addEventListener("click",(e)=>{
+  const btn=e.target.closest(".mark-btn");
+  if(!btn) return;
+  e.stopPropagation();
+  if(markPop.classList.contains("show")){ closeMarkPop(); return; }
+  closeMarkPop();
+  activeBtnRect=btn.getBoundingClientRect();
+  openMarkAt(markPop,"#mpOptions",btn.dataset.id, activeBtnRect.left, activeBtnRect.bottom+6);
+});
+document.getElementById("mpOptions").addEventListener("click",(e)=>{
+  const opt=e.target.closest(".opt"); if(!opt) return;
+  const id=markPop.dataset.activeId;
+  const k=opt.dataset.k;
+  const ts=marks[id]=marks[id]||[];
+  if(ts.includes(k)) marks[id]=ts.filter(x=>x!==k); else ts.push(k);
+  persistMarks(); renderTable(); renderStats(); renderTagRow();
+  /* 重新打开并刷新 */
+  const btn=document.querySelector(`.mark-btn[data-id="${id}"]`);
+  if(btn){ const r=btn.getBoundingClientRect(); openMarkAt(markPop,"#mpOptions",id,r.left,r.bottom+6); }
+});
+document.getElementById("mpAdd").addEventListener("click",()=>{
+  const inp=document.getElementById("mpNewVal");
+  const v=inp.value.trim(); if(!v){ inp.focus(); return; }
+  const k="c_"+Date.now();
+  custTags.push({k,label:v,cls:"m-custom"});
+  inp.value="";
+  const id=markPop.dataset.activeId;
+  const ts=marks[id]=marks[id]||[];
+  if(!ts.includes(k)) ts.push(k);
+  persistMarks(); renderTable(); renderStats(); renderTagRow();
+  const btn=document.querySelector(`.mark-btn[data-id="${id}"]`);
+  if(btn){ const r=btn.getBoundingClientRect(); openMarkAt(markPop,"#mpOptions",id,r.left,r.bottom+6); }
+});
+
+/* 行右键触发 */
+const ctxMenu=document.getElementById("ctxMenu");
+document.getElementById("tbody").addEventListener("contextmenu",(e)=>{
+  const tr=e.target.closest("tr[data-id]");
+  if(!tr) return;
+  e.preventDefault();
+  closeMarkPop();
+  openMarkAt(ctxMenu,"#ctxOptions",tr.dataset.id, e.clientX, e.clientY);
+});
+document.getElementById("ctxOptions").addEventListener("click",(e)=>{
+  const opt=e.target.closest(".opt"); if(!opt) return;
+  const id=ctxMenu.dataset.activeId;
+  const k=opt.dataset.k;
+  const ts=marks[id]=marks[id]||[];
+  if(ts.includes(k)) marks[id]=ts.filter(x=>x!==k); else ts.push(k);
+  persistMarks(); renderTable(); renderStats(); renderTagRow();
+  /* 弹层保持打开并刷新内容 */
+  const tr=document.querySelector(`tr[data-id="${id}"]`);
+  if(tr){
+    const rect=tr.getBoundingClientRect();
+    openMarkAt(ctxMenu,"#ctxOptions",id, rect.right+8, rect.top);
+  }
+});
+document.getElementById("ctxAdd").addEventListener("click",()=>{
+  const inp=document.getElementById("ctxNewVal");
+  const v=inp.value.trim(); if(!v){ inp.focus(); return; }
+  const k="c_"+Date.now();
+  custTags.push({k,label:v,cls:"m-custom"});
+  inp.value="";
+  const id=ctxMenu.dataset.activeId;
+  const ts=marks[id]=marks[id]||[];
+  if(!ts.includes(k)) ts.push(k);
+  persistMarks(); renderTable(); renderStats(); renderTagRow();
+  const tr=document.querySelector(`tr[data-id="${id}"]`);
+  if(tr){
+    const rect=tr.getBoundingClientRect();
+    openMarkAt(ctxMenu,"#ctxOptions",id, rect.right+8, rect.top);
+  }
+});
+
+document.addEventListener("click",(e)=>{
+  if(!markPop.contains(e.target)&&!ctxMenu.contains(e.target)&&!e.target.closest(".mark-btn")){
+    closeMarkPop();
+  }
+});
+document.addEventListener("contextmenu",(e)=>{
+  /* 不在数据行上的右键交给浏览器默认行为 */
+  if(!e.target.closest("tr[data-id]")) return;
+});
+
+/* ============================================================
+ * 11. 导出 CSV
+ * ========================================================== */
+document.getElementById("btnExport").addEventListener("click",()=>{
+  if(!filtered.length){ toast("当前无数据可导出","err"); return; }
+  const head=["交易所","编号","债券名称","原始权益人","承销商/管理人","计划管理人","品种","拟发行金额(亿元)","项目状态","更新日期","受理日期","标记"];
+  const rows=filtered.map(d=>[
+    d.ex||"",d.num||"",d.name,d.origin,d.mgr,d.writer,"持有型不动产",
+    d.amt==null?"":d.amt,STATUS_LABEL[d.status]||"",d.up||"",d.acc||"",
+    (marks[d.id]||[]).map(k=>{const def=allTagDefs()[k];return def?def.label:k;}).join(";")
+  ]);
+  const csv="\ufeff"+[head,...rows].map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=`机构间REITs数据_${FETCH_META.snapshot}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast("已导出 CSV（当前筛选结果）");
+});
+
+/* ============================================================
+ * 12. 数据更新：本 HTML 内嵌更新工具（py/bat 源码），点击下载到本机运行
+ * ========================================================== */
+const PY_SRC = "# -*- coding: utf-8 -*-\n\"\"\"\n机构间REITs数据更新脚本（reits_update.py）\n============================================\n用途：抓取上交所 + 深交所债券平台中「持有型不动产」资产支持专项计划\n      （机构间REIT）项目数据，合并生成 reits_snapshot.js 供看板加载。\n\n用法：python reits_update.py（或双击 更新数据.bat）\n  - 上交所：query.sse.com.cn ZQ_XMLB，强制校验 Referer（须带 bond.sse.com.cn）\n  - 深交所：bond.szse.cn/api/report/ShowReport，列表 + 逐条详情（取发行人/管理人）\n  - 搜索关键词：持有型不动产（两所口径一致）\n  - 输出：与脚本同目录的 reits_snapshot.js（页面刷新后自动采用新数据）\n\n字段统一口径（两所映射到同一结构）：\n  origin(原始权益人)：上交所 FULL_NAME ｜ 深交所详情 fxr（发行人）\n  writer(计划管理人)：上交所 WRITER_NAME ｜ 深交所详情 cxsqc\n  mgr(承销商/管理人)：上交所 SHORT_NAME ｜ 深交所列表 cxsjc\n  amt(拟发行金额)：PLAN_ISSUE_AMOUNT / nfxje\n  status(项目状态)：上交所代码 ｜ 深交所中文→代码（STATUS_MAP_SZSE）\n  up(更新日期)：PUBLISH_DATE / xmztgxrq\n  acc(受理日期)：ACCEPT_DATE / xmslrq\n  ex(交易所)：\"上交所\" / \"深交所\"\n\n说明：零第三方依赖（仅标准库 urllib）。\n\"\"\"\nimport json\nimport os\nimport sys\nimport time\nimport re\nimport urllib.request\nimport urllib.parse\nfrom datetime import date\n\nUA = (\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 \"\n      \"(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36\")\n\n# ============ 上交所 ============\nSSE_ENDPOINT = \"https://query.sse.com.cn/sseQuery/commonSoaQuery.do\"\nSSE_REFERER = \"https://bond.sse.com.cn/bridge2/information/index_search.shtml?key=\" + urllib.parse.quote(\"持有型不动产\")\nSSE_SQL_ID = \"ZQ_XMLB\"\nSSE_PAGE_SIZE = 100\n\n# ============ 深交所 ============\nSZSE_REFERER = \"https://bond.szse.cn/disclosure/progressinfo/index.html\"\nSZSE_API = \"https://bond.szse.cn/api/report/ShowReport/data\"\nSZSE_CATALOG_LIST = \"xmjdxx\"      # 列表\nSZSE_CATALOG_DETAIL = \"xmjdxx_xq\"  # 详情（发行人/管理人）\n\n# 深交所状态中文 → 看板状态代码（与上交所 STATUS_LABEL 对齐）\nSTATUS_MAP_SZSE = {\n    \"已受理\": \"1\", \"已反馈\": \"2\", \"通过\": \"4\", \"不通过\": \"5\",\n    \"提交注册\": \"11\", \"注册生效\": \"12\", \"终止\": \"8\", \"中止\": \"9\",\n}\n\nSEARCH_KEY = \"持有型不动产\"\nOUT_FILE = \"reits_snapshot.js\"\n\n\n# ============ 工具 ============\ndef http_get_json(url, referer):\n    req = urllib.request.Request(url, headers={\"User-Agent\": UA, \"Referer\": referer})\n    with urllib.request.urlopen(req, timeout=30) as resp:\n        return resp.read().decode(\"utf-8\")\n\n\ndef strip_html(s):\n    return re.sub(r\"<[^>]+>\", \"\", s or \"\").strip()\n\n\ndef clean(v):\n    return v if v not in (\"-\", \"\", \" \", \" , \") else \"-\"\n\n\n# ============ 上交所抓取 ============\ndef fetch_sse():\n    print(\"[上交所] 正在抓取「持有型不动产」项目数据…\")\n    all_rows = []\n    for p in (1, 2):\n        params = {\n            \"jsonCallBack\": \"cb\", \"isPagination\": \"true\", \"sqlId\": SSE_SQL_ID,\n            \"key\": SEARCH_KEY, \"pageHelp.pageSize\": SSE_PAGE_SIZE,\n            \"pageHelp.pageNo\": p, \"pageHelp.beginPage\": 1, \"pageHelp.endPage\": 2,\n        }\n        url = SSE_ENDPOINT + \"?\" + urllib.parse.urlencode(params)\n        raw = http_get_json(url, SSE_REFERER)\n        start, end = raw.find(\"(\"), raw.rfind(\")\")\n        data = json.loads(raw[start + 1:end])\n        rows = data.get(\"result\") or []\n        total = (data.get(\"pageHelp\") or {}).get(\"total\", 0)\n        print(f\"      第 {p} 页：返回 {len(rows)} 条（总量 {total}）\")\n        all_rows.extend(rows)\n\n    seen, mapped = set(), []\n    for r in all_rows:\n        rid = r.get(\"BOND_NUM\")\n        if rid in seen:\n            continue\n        seen.add(rid)\n        mapped.append({\n            \"id\": rid, \"num\": r.get(\"NUM\", \"\"), \"name\": r.get(\"AUDIT_NAME\", \"\"),\n            \"mgr\": clean(r.get(\"SHORT_NAME\")),\n            \"writer\": clean(r.get(\"WRITER_NAME\")),\n            \"amt\": (float(r[\"PLAN_ISSUE_AMOUNT\"])\n                    if str(r.get(\"PLAN_ISSUE_AMOUNT\", \"\")).replace(\".\", \"\").isdigit()\n                    else None),\n            \"status\": r.get(\"AUDIT_STATUS\", \"\"),\n            \"up\": r.get(\"PUBLISH_DATE\", \"\") if r.get(\"PUBLISH_DATE\") != \"-\" else \"\",\n            \"acc\": r.get(\"ACCEPT_DATE\", \"\") if r.get(\"ACCEPT_DATE\") != \"-\" else \"\",\n            \"origin\": clean(r.get(\"FULL_NAME\")),\n            \"ex\": \"上交所\",\n        })\n    print(f\"      上交所共 {len(mapped)} 条\")\n    return mapped\n\n\n# ============ 深交所抓取 ============\ndef fetch_szse():\n    print(\"[深交所] 正在抓取「持有型不动产」项目数据…\")\n    params = {\"SHOWTYPE\": \"JSON\", \"CATALOGID\": SZSE_CATALOG_LIST,\n              \"txtZqmc\": SEARCH_KEY, \"pageSize\": 100, \"pageNo\": 1}\n    url = SZSE_API + \"?\" + urllib.parse.urlencode(params)\n    d = json.loads(http_get_json(url, SZSE_REFERER))\n    rows = d[0][\"data\"]\n    total = d[0][\"metadata\"][\"recordcount\"]\n    print(f\"      列表返回 {len(rows)} 条（recordcount={total}）\")\n\n    mapped = []\n    for i, r in enumerate(rows):\n        xmbh = re.search(r\"xmbh=([A-F0-9]+)\", r[\"zqmc\"])\n        xmbh = xmbh.group(1) if xmbh else \"\"\n        name = strip_html(r[\"zqmc\"])\n        # 列表字段\n        item = {\n            \"id\": \"SZSE_\" + xmbh, \"num\": str(i + 1), \"name\": name,\n            \"mgr\": clean(strip_html(r.get(\"cxsjc\", \"\"))),\n            \"amt\": (float(r[\"nfxje\"]) if str(r.get(\"nfxje\", \"\")).replace(\".\", \"\").isdigit() else None),\n            \"status\": STATUS_MAP_SZSE.get(r.get(\"xmzt\", \"\"), \"\"),\n            \"up\": r.get(\"xmztgxrq\", \"\"), \"acc\": r.get(\"xmslrq\", \"\"),\n            \"origin\": \"-\", \"writer\": \"-\", \"ex\": \"深交所\",\n        }\n        # 详情：发行人(原始权益人) + 承销商全称(计划管理人)\n        try:\n            dp = {\"SHOWTYPE\": \"JSON\", \"CATALOGID\": SZSE_CATALOG_DETAIL,\n                  \"TABKEY\": \"tab1\", \"xmbh\": xmbh, \"type\": \"2\"}\n            du = SZSE_API + \"?\" + urllib.parse.urlencode(dp)\n            dd = json.loads(http_get_json(du, SZSE_REFERER))\n            det = dd[0][\"data\"][0]\n            item[\"origin\"] = clean(det.get(\"fxr\", \"\"))     # 发行人 → 原始权益人\n            item[\"writer\"] = clean(det.get(\"cxsqc\", \"\") or det.get(\"cxsjc\", \"\"))\n        except Exception as e:\n            print(f\"      详情抓取失败 {name[:30]}: {e}\")\n        mapped.append(item)\n        print(f\"      [{i + 1}/{len(rows)}] {name[:36]} | 发行人: {item['origin'][:18]} | 管理人: {item['writer'][:18]}\")\n        time.sleep(0.25)\n    print(f\"      深交所共 {len(mapped)} 条\")\n    return mapped\n\n\n# ============ 主流程 ============\ndef main():\n    print(\"=\" * 52)\n    print(\"  机构间REITs（持有型不动产）数据更新\")\n    print(\"=\" * 52)\n    merged = []\n    try:\n        merged += fetch_sse()\n    except Exception as e:\n        print(f\"  [警告] 上交所抓取失败：{e}\")\n    try:\n        merged += fetch_szse()\n    except Exception as e:\n        print(f\"  [警告] 深交所抓取失败：{e}\")\n\n    if not merged:\n        print(\"[错误] 两所均未获取到数据，请检查网络后重试。\")\n        sys.exit(1)\n\n    # 默认排序：更新日期降序 → 受理日期降序 → 拟发行金额降序\n    merged.sort(key=lambda x: (\n        x.get(\"up\") or \"\",\n        x.get(\"acc\") or \"\",\n        x.get(\"amt\") if x.get(\"amt\") is not None else -1,\n    ), reverse=True)\n    # 全局连续编号（1..N，跨两所不重复）\n    for i, x in enumerate(merged, 1):\n        x[\"num\"] = str(i)\n    snap_date = date.today().isoformat()\n    js = (\"/* 自动生成 by reits_update.py — 机构间REITs（持有型不动产）数据快照 */\\n\"\n          \"var __REITS_SNAPSHOT__ = \" + json.dumps(merged, ensure_ascii=False) + \";\\n\"\n          \"var __REITS_SNAPSHOT_DATE__ = \" + json.dumps(snap_date) + \";\\n\")\n\n    base = os.path.dirname(os.path.abspath(sys.argv[0]))\n    out_path = os.path.join(base, OUT_FILE)\n    with open(out_path, \"w\", encoding=\"utf-8\") as f:\n        f.write(js)\n\n    from collections import Counter\n    ex_cnt = Counter(x[\"ex\"] for x in merged)\n    print(\"-\" * 52)\n    print(f\"[完成] 共 {len(merged)} 条项目，快照日期 {snap_date}\")\n    for k, v in ex_cnt.items():\n        print(f\"      {k}: {v} 条\")\n    print(f\"      已写入 {out_path}\")\n    print(\"      刷新看板页面即可加载最新数据。\")\n\n\nif __name__ == \"__main__\":\n    main()\n";
+const BAT_SRC = "@echo off\nchcp 65001 >nul\ncd /d \"%~dp0\"\n\nrem === 解除 Windows Mark of the Web 标记（浏览器下载文件的「区标识」）===\nrem 现象：双击运行此 bat 时弹出「Internet 安全设置阻止打开一个或多个文件」\nrem 解决：从本 bat 所在目录自动清除 :Zone.Identifier 备用数据流（含本 bat 与同目录 py）\nfor %%F in (\"%~f0\", \"%~dp0reits_update.py\") do (\n  if exist \"%%F:Zone.Identifier\" (\n    >nul 2>&1 del /ah \"%%F:Zone.Identifier\"\n  )\n)\nrem 兜底：用 PowerShell Unblock-File（更彻底）\n>nul 2>&1 powershell -NoProfile -Command \"Try { Get-ChildItem -Path '%~dp0' -Include '*.bat','*.py' -File -ErrorAction SilentlyContinue | ForEach-Object { Unblock-File -Path $_.FullName -ErrorAction SilentlyContinue } } Catch {}\"\n\necho ============================================\necho  机构间REITs（持有型不动产）数据更新\necho ============================================\necho.\necho [0/2] 正在查找 Python 解释器...\nset \"PYTHON=\"\n\nrem 1) 优先使用 py 启动器（Python官方安装器自带）\nwhere py >nul 2>nul\nif not errorlevel 1 set \"PYTHON=py -3\"\n\nrem 2) 其次使用 PATH 中的 python\nif not defined PYTHON (\n  where python >nul 2>nul\n  if not errorlevel 1 set \"PYTHON=python\"\n)\n\nrem 3) 兜底使用 WorkBuddy 托管 Python（本机唯一可用解释器）\nif not defined PYTHON (\n  where python3 >nul 2>nul\n  if not errorlevel 1 set \"PYTHON=python3\"\n)\n\nif not defined PYTHON (\n  echo.\n  echo [错误] 未找到 Python。请任选其一：\n  echo   a. 安装 Python 3 并勾选 \"Add to PATH\"（下载: https://www.python.org/downloads/）\n  echo   b. 直接把 python.exe 放到本目录\n  echo   c. 若此 bat 是从浏览器下载的：右键 - 属性 - 勾选「解除锁定」- 确定 - 再双击\n  pause\n  exit /b 1\n)\n\necho      使用: %PYTHON%\necho.\necho [1/2] 正在抓取上交所+深交所最新数据...\n%PYTHON% reits_update.py\nif errorlevel 1 (\n  echo.\n  echo [错误] 更新失败，请检查网络后重试。\n  echo   若提示 Internet 安全设置，请右键 - 属性 - 勾选「解除锁定」。\n  pause\n  exit /b 1\n)\necho.\necho ============================================\necho  更新完成！请刷新看板网页加载最新数据。\necho ============================================\npause\n";
+function downloadText(filename, text){
+  const blob=new Blob([text],{type:"text/plain;charset=utf-8"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob);
+  a.download=filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+document.getElementById("btnRefresh").addEventListener("click",()=>{
+  document.getElementById("dlSnap").textContent=FETCH_META.snapshot;
+  document.getElementById("dlCnt").textContent=DATA.length;
+  document.getElementById("dlMask").classList.add("show");
+});
+document.getElementById("dlClose").addEventListener("click",()=>document.getElementById("dlMask").classList.remove("show"));
+document.getElementById("dlCancel").addEventListener("click",()=>document.getElementById("dlMask").classList.remove("show"));
+document.getElementById("dlMask").addEventListener("click",(e)=>{ if(e.target===document.getElementById("dlMask")) document.getElementById("dlMask").classList.remove("show"); });
+document.getElementById("dlBat").addEventListener("click",()=>{ downloadText("更新数据.bat",BAT_SRC); toast("已下载 更新数据.bat，请与本文档放在同一文件夹"); });
+document.getElementById("dlPy").addEventListener("click",()=>{ downloadText("reits_update.py",PY_SRC); toast("已下载 reits_update.py，请与本文档放在同一文件夹"); });
+
+/* ============================================================
+ * 13. 启动（尝试加载外部快照，成功则优先使用）
+ * ========================================================== */
+(function boot(){
+  const s=document.createElement("script");
+  s.src="reits_snapshot.js";
+  s.onload=function(){
+    if(window.__REITS_SNAPSHOT__) EXTERNAL_SNAPSHOT=window.__REITS_SNAPSHOT__;
+    if(window.__REITS_SNAPSHOT_DATE__) EXTERNAL_SNAPSHOT_DATE=window.__REITS_SNAPSHOT_DATE__;
+    initAll(); bindChartToggles();
+  };
+  s.onerror=function(){
+    EXTERNAL_SNAPSHOT=window.__REITS_SNAPSHOT__||null;
+    EXTERNAL_SNAPSHOT_DATE=window.__REITS_SNAPSHOT_DATE__||null;
+    initAll(); bindChartToggles();
+  };
+  document.head.appendChild(s);
+})();
+function initAll(){
+  loadData(); loadMarks();
+  /* Tab 计数 */
+  const cA=DATA.length, cS=DATA.filter(d=>d.ex==="上交所").length, cZ=DATA.filter(d=>d.ex==="深交所").length;
+  document.getElementById("cntAll").textContent=cA;
+  document.getElementById("cntSse").textContent=cS;
+  document.getElementById("cntSzse").textContent=cZ;
+  refreshFilterSources(); renderStats(); renderTagRow();
+  renderChartStatus(); renderChartTopMgr(); renderChartTrend();
+  applyFilters(); renderTable();
+}
+
+/* 图表切换器事件绑定（启动后执行） */
+function bindChartToggles(){
+  const top=document.getElementById("toggleTopMgr");
+  top.addEventListener("click",(e)=>{
+    const b=e.target.closest("button[data-mode]"); if(!b) return;
+    if(top.querySelector(".on")===b) return;
+    top.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+    TOP_MODE=b.dataset.mode;
+    renderChartTopMgr();
+  });
+  const tr=document.getElementById("toggleTrend");
+  tr.addEventListener("click",(e)=>{
+    const b=e.target.closest("button[data-mode]"); if(!b) return;
+    if(tr.querySelector(".on")===b) return;
+    tr.querySelectorAll("button").forEach(x=>x.classList.toggle("on", x===b));
+    TREND_MODE=b.dataset.mode;
+    renderChartTrend();
+  });
+}
+</script>
+</body>
+</html>
