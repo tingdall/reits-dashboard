@@ -74,6 +74,40 @@ CLS_SEED_FILE = "cls_seed.json"
 CLS_FIELDS = ("ptype", "psub", "pflag", "pnote")
 
 
+# ============ 自动分类（按名称关键词，规则与 index.html classifyByName 保持一致） ============
+def classify_by_name(name):
+    n = name or ""
+    def kw(arr):
+        return any(k in n for k in arr)
+    # 经营权类（特许经营 / 基础设施运营）
+    if kw(["高速", "公路", "铁路", "高铁", "车站", "机场", "港口", "轨道交通", "大桥", "隧道", "地铁", "码头", "水运", "航空"]):
+        return ("经营权类", "交通设施", "名称含交通设施关键词")
+    if kw(["能源", "光伏", "风电", "水电", "储能", "电力", "天然气", "燃气", "热力", "氢能", "充电", "电站", "生物质", "碳中和"]):
+        return ("经营权类", "能源", "名称含能源关键词")
+    if kw(["水务", "供水", "污水", "水厂", "垃圾", "环卫", "环保", "生态", "园林", "绿化", "市政"]):
+        return ("经营权类", "市政生态", "名称含市政生态关键词")
+    if kw(["特许经营", "经营权", "收费权", "公用事业"]):
+        return ("经营权类", "市政生态", "名称含特许经营权关键词")
+    # 产权类
+    if kw(["产业园", "产城", "园区", "科技园", "工业", "厂房", "孵化", "基地", "创业"]):
+        return ("产权类", "产业园", "名称含产业园关键词")
+    if kw(["物流", "仓储", "供应链", "快递", "冷链", "枢纽"]):
+        return ("产权类", "物流仓储", "名称含物流仓储关键词")
+    if kw(["数据中心", "IDC", "算力", "云计算", "智算", "超算", "数据港"]):
+        return ("产权类", "数据中心", "名称含数据中心关键词")
+    if kw(["办公", "写字楼", "总部"]):
+        return ("产权类", "办公", "名称含办公关键词")
+    if kw(["文旅", "旅游", "酒店", "景区", "度假", "乐园", "文创"]):
+        return ("产权类", "文旅类", "名称含文旅关键词")
+    if kw(["消费", "商业", "广场", "购物中心", "百货", "商场", "零售", "农贸", "市场", "商厦", "街区"]):
+        return ("产权类", "消费", "名称含消费/商业关键词")
+    if kw(["租赁住房", "住房租赁", "公寓", "保障房", "人才房", "租赁房", "安居", "长租"]):
+        return ("产权类", "租赁住房", "名称含租赁住房关键词")
+    if kw(["综合", "多元", "综合体"]):
+        return ("产权类", "综合业态", "名称含综合业态关键词")
+    return ("产权类", "综合业态", "名称无明确关键词，默认综合业态")
+
+
 # ============ 工具 ============
 def http_get_json(url, referer):
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Referer": referer})
@@ -134,7 +168,7 @@ def merge_cls_fields(items, cls_map, seed, force_reclassify):
     """增量合并分类字段：
     - 已存在旧分类（cls_map 命中）→ 沿用，不重算
     - 种子命中 → 用种子分类（首次建立基线）
-    - 均未命中（全新项目）→ 分类留空 + pflag="待分类"，由前端/人工补充
+    - 均未命中（全新项目）→ 按名称关键词自动初判（classify_by_name）；关键词无命中才留空 + pflag="待分类"
     - force_reclassify=True（规则版本变更）→ 全部视为新项目重分类（打印提示）"""
     new_cnt = 0
     for it in items:
@@ -151,10 +185,16 @@ def merge_cls_fields(items, cls_map, seed, force_reclassify):
             for k in CLS_FIELDS:
                 it[k] = seed[iid].get(k, "")
             continue
-        # 全新项目：待分类
-        it["ptype"] = it["psub"] = ""
-        it["pflag"] = "待分类"
-        it["pnote"] = "新增项目，请人工确认项目类型与二级分类"
+        # 全新项目：先按名称关键词自动初判；无关键词命中才标「待分类」
+        ptype, psub, pnote = classify_by_name(it.get("name") or "")
+        if psub:
+            it["ptype"], it["psub"] = ptype, psub
+            it["pflag"] = ""                                   # 自动初判命中 → 不标待分类（人工可随时点改）
+            it["pnote"] = pnote + "（AI初判，可点击手动修正）"
+        else:
+            it["ptype"] = it["psub"] = ""
+            it["pflag"] = "待分类"
+            it["pnote"] = "新增项目，请人工确认项目类型与二级分类"
         new_cnt += 1
     return new_cnt
 

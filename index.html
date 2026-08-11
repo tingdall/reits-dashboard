@@ -629,6 +629,7 @@ function loadData(){
       if(d.ptype && d.psub) return d;                       /* 快照自带分类（v5+ 脚本） */
       const r=rawMap[d.id];                                 /* 旧快照 → 从内嵌数据按 id 继承 */
       if(r && r.ptype && r.psub) return {...d, ptype:r.ptype, psub:r.psub, pnote:d.pnote||r.pnote||""};
+      if(d.pflag==="待分类") return d;                       /* 真待分类 → 不前端兜底，保持待分类状态 */
       const c=classifyByName(d.name||"");                   /* 全新项目 → 名称规则分类 */
       return {...d, ptype:c.ptype, psub:c.psub, pnote:d.pnote||c.pnote||""};
     });
@@ -969,9 +970,11 @@ function renderTable(){
       const ptypeHtml=ec.ptype
         ? `<span class="badge ${ec.ptype==="经营权类"?"b-sb":"b-ok"}">${esc(ec.ptype)}</span>${ec.manual?`<span class="cls-manual" title="手动修改">✎</span>`:""}`
         : "<span style='color:#b8b1a6;font-size:11px'>—</span>";
-      const psubHtml=ec.psub
-        ? `<span class="badge b-zz">${esc(ec.psub)}</span>`
-        : "<span style='color:#b8b1a6;font-size:11px'>—</span>";
+      const psubHtml=(d.pflag==="待分类")
+        ? "<span style='color:#b8b1a6;font-size:11px'>—</span>"   /* 真待分类 → 不显示 psub，与待分类互斥 */
+        : (ec.psub
+          ? `<span class="badge b-zz">${esc(ec.psub)}</span>`
+          : "<span style='color:#b8b1a6;font-size:11px'>—</span>");
       const exHtml=d.ex==="深交所"
         ? `<span class="ex-badge ex-szse">深交所</span>`
         : `<span class="ex-badge ex-sse">上交所</span>`;
