@@ -30,15 +30,23 @@ jobs:
       - name: 运行抓取脚本（生成 reits_snapshot.js + reits_snapshot.json）
         run: python reits_update.py
 
-      - name: 提交新快照并推送
+      - name: 归档每日快照副本
+        run: |
+          TODAY=$(TZ=Asia/Shanghai date +%F)
+          mkdir -p snapshots
+          cp reits_snapshot.js "snapshots/${TODAY}.js"
+          cp reits_snapshot.json "snapshots/${TODAY}.json"
+          echo "已归档当日快照：snapshots/${TODAY}.js / .json"
+
+      - name: 提交新快照及归档并推送
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reits_snapshot.js reits_snapshot.json
-          # 数据无变化时不产生空提交，避免无限循环
+          git add reits_snapshot.js reits_snapshot.json snapshots/
+          # 仅在确有变更时提交：数据变化 或 当日新增归档（手动重跑同一天且数据未变则跳过，避免空提交）
           if git diff --cached --quiet; then
-            echo "数据无变化，跳过提交"
+            echo "无变化，跳过提交"
           else
-            git commit -m "chore: 自动更新 REITs 数据快照 $(date +%Y-%m-%d)"
+            git commit -m "chore: 自动更新 REITs 数据快照 + 每日归档 $(TZ=Asia/Shanghai date +%F)"
             git push
           fi
