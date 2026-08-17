@@ -397,6 +397,7 @@ td[data-cls]:hover{background:#fdf3ec}
       <div class="result">共 <b id="showCount">0</b> 条 <span id="filterDesc"></span> ｜ 在表格行上 <b>右键</b> 快速打标签</div>
       <div class="tools">
         <button class="btn" id="btnRefresh">⟳ 数据更新</button>
+        <button class="btn" id="btnTool">⬇ 下载工具</button>
       </div>
     </div>
     <div class="table-scroll" id="tableScroll">
@@ -1358,6 +1359,12 @@ document.getElementById("btnRefresh").addEventListener("click",async()=>{
     /* 无快照 → 打开下载面板引导安装更新工具 */
     document.getElementById("dlMask").classList.add("show");
   }
+});
+/* 方案B：常驻「下载工具」入口——线上用户随时打开面板下载 更新数据.bat / reits_update.py */
+document.getElementById("btnTool").addEventListener("click",()=>{
+  document.getElementById("dlSnap").textContent=FETCH_META.snapshot;
+  document.getElementById("dlCnt").textContent=DATA.length;
+  document.getElementById("dlMask").classList.add("show");
 });
 /* 面板内：立即加载本地快照（常用于运行 bat 后不刷新页面的场景） */
 document.getElementById("dlLoad").addEventListener("click",async()=>{
