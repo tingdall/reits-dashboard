@@ -267,6 +267,23 @@ td[data-cls]:hover{background:#fdf3ec}
   .stat .num{font-size:20px}
 }
 </style>
+
+<!-- Google Analytics 4 访问统计：填入测量 ID 即生效；留空则完全不加载外部脚本 -->
+<script>
+  window.__GA4_ID__ = "G-6WT98HF0BL";   /* GA4 测量 ID */
+  (function () {
+    var id = window.__GA4_ID__;
+    if (!id) return;        /* 未配置 → 不发起任何网络请求 */
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(id);
+    document.head.appendChild(s);
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    window.gtag("js", new Date());
+    window.gtag("config", id);   /* GA4 默认已匿名化 IP */
+  })();
+</script>
 </head>
 <body>
 
