@@ -1525,23 +1525,27 @@ document.getElementById("dlSnapFile").addEventListener("click",()=>{
  * 板块切换（公募 REITs / 机构间 REITs）
  * 设计：不动机构间原有逻辑，仅在切换时替换 DATA 并重渲染
  * ========================================================== */
-let CHANGES=[];
+let CHANGES={public:[],inter:[]};
 async function loadChanges(){
-  try{
-    const r=await fetch("gongmu_changes.json",{cache:"no-store"});
-    if(!r.ok) return;
-    const j=await r.json();
-    if(Array.isArray(j)) CHANGES=j;
-  }catch(e){}
+  const files={public:"gongmu_changes.json",inter:"reits_changes.json"};
+  for(const seg in files){
+    try{
+      const r=await fetch(files[seg],{cache:"no-store"});
+      if(!r.ok) continue;
+      const j=await r.json();
+      if(Array.isArray(j)) CHANGES[seg]=j;
+    }catch(e){}
+  }
 }
 function renderChanges(){
   const box=document.getElementById("changesPanel");
   if(!box) return;
-  if(CUR_SEG!=="public"||!CHANGES.length){ box.style.display="none"; return; }
-  const days=CHANGES.slice(0,7);
+  const arr=CHANGES[CUR_SEG]||[];
+  if(!arr.length){ box.style.display="none"; return; }
+  const days=arr.slice(0,7);
   const addN=days.reduce((a,d)=>a+((d.added||[]).length),0);
   const stN=days.reduce((a,d)=>a+((d.status_changed||[]).length),0);
-  const latest=CHANGES[0]||{};
+  const latest=arr[0]||{};
   const rows=[];
   (latest.added||[]).slice(0,5).forEach(x=>rows.push(
     '<div class="chg-row"><span class="chg-tag add">新增</span><span class="chg-name" title="'+esc(x.name)+'">'+esc(x.name)+'</span><span class="chg-meta">'+esc(x.ex||"")+' · '+esc(x.sname||"")+'</span></div>'));
@@ -1635,7 +1639,7 @@ function initAll(){
 
   /* 机构间渲染完成后：绑定板块切换，并在公募数据可用时默认切到公募 */
   bindSegSwitch();
-  loadChanges().then(()=>{ if(CUR_SEG==="public") renderChanges(); });
+  loadChanges().then(()=>renderChanges());
   loadGongmuSnapshot().then(ok=>{
     /* 支持 #inter / #public 直达；默认公募 */
     if(ok) switchSeg(location.hash==="#inter"?"inter":"public");

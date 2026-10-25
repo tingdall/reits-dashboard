@@ -285,6 +285,155 @@ def fetch_szse():
 
 
 # ============ 主流程 ============
+CHG_FILE = "reits_changes.json"
+WEEKLY_DIR = "weekly"
+STATUS_LABEL = {
+    "0": "已申报", "1": "已受理", "2": "已反馈", "3": "已接收反馈意见",
+    "4": "通过", "5": "未通过", "8": "终止", "9": "中止",
+    "10": "已回复交易所意见", "11": "提交注册", "12": "注册生效",
+}
+
+
+def _load_json(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _prev_items(base):
+    """读取旧快照（reits_snapshot.js）中的完整项目列表，用于变更比对。"""
+    p = os.path.join(base, OUT_FILE)
+    if not os.path.exists(p):
+        return []
+    try:
+        txt = open(p, encoding="utf-8").read()
+        m = re.search(r"var __REITS_SNAPSHOT__ = (\[.*?\]);", txt, re.S)
+        return json.loads(m.group(1)) if m else []
+    except Exception:
+        return []
+
+
+def diff_items(prev, curr):
+    """对比上一版快照：返回 (新增, 状态变化, 金额变化)。"""
+    pm = {str(x.get("id")): x for x in (prev or []) if x.get("id")}
+    cm = {str(x.get("id")): x for x in curr if x.get("id")}
+    added, st_chg, amt_chg = [], [], []
+    for k, cur in cm.items():
+        old = pm.get(k)
+        if not old:
+            added.append({
+                "id": k, "name": cur.get("name"), "ex": cur.get("ex"),
+                "amt": cur.get("amt"), "ptype": cur.get("ptype"),
+                "sname": STATUS_LABEL.get(str(cur.get("status")), ""),
+            })
+            continue
+        o_s, n_s = str(old.get("status")), str(cur.get("status"))
+        if o_s != n_s:
+            st_chg.append({
+                "id": k, "name": cur.get("name"), "ex": cur.get("ex"),
+                "from": STATUS_LABEL.get(o_s, o_s), "to": STATUS_LABEL.get(n_s, n_s),
+                "status_from": o_s, "status_to": n_s,
+            })
+        o_a, n_a = old.get("amt"), cur.get("amt")
+        if (o_a is None) != (n_a is None) or (o_a or 0) != (n_a or 0):
+            amt_chg.append({
+                "id": k, "name": cur.get("name"), "ex": cur.get("ex"),
+                "from": o_a, "to": n_a,
+            })
+    return added, st_chg, amt_chg
+
+
+def write_weekly(hist, merged, today, force=False):
+    """每周一生成机构间变更简报（Markdown）。非周一且未强制时返回 None。"""
+    if date.today().weekday() != 0 and not force:
+        return None
+    iso = date.today().isocalendar()
+    year, week = iso[0], iso[1]
+
+    days = hist[:7]
+    start = days[-1].get("date") if days else today
+    end = days[0].get("date") if days else today
+
+    add_rows, st_rows = [], []
+    for h in days:
+        add_rows.extend(h.get("added", []))
+        st_rows.extend(h.get("status_changed", []))
+
+    amt_sum = round(sum(x["amt"] for x in merged if x.get("amt")), 2)
+    cnt_amt = sum(1 for x in merged if x.get("amt"))
+    passed = sum(1 for x in merged if str(x.get("status")) == "4")
+    fed = sum(1 for x in merged if str(x.get("status")) == "2")
+    stopped = sum(1 for x in merged if str(x.get("status")) in ("8", "9"))
+
+    into_pass = [x for x in st_rows if str(x.get("status_to")) == "4"]
+    into_stop = [x for x in st_rows if str(x.get("status_to")) in ("8", "9")]
+
+    L = []
+    L.append(f"# 机构间 REITs 周度变更简报 · {year}-W{week:02d}")
+    L.append("")
+    L.append(f"> 统计区间：{start} ~ {end}　｜　数据截至：{today}　｜　口径：持有型不动产资产支持专项计划")
+    L.append("")
+    L.append("## 一、本周概览")
+    L.append("")
+    L.append(f"- 新增项目：**{len(add_rows)}** 个")
+    L.append(f"- 状态变化：**{len(st_rows)}** 次")
+    L.append(f"- 存量项目：**{len(merged)}** 个（审核通过 {passed} · 已反馈 {fed} · 终止/中止 {stopped}）")
+    L.append(f"- 拟发行金额合计：**{amt_sum:,.2f} 亿元**（{cnt_amt}/{len(merged)} 条已披露）")
+    L.append("")
+    L.append("## 二、本周看点")
+    L.append("")
+    if into_pass:
+        L.append(f"- **{len(into_pass)} 个项目审核通过**：" + "、".join(x.get("name", "")[:24] for x in into_pass[:5]))
+    if into_stop:
+        L.append(f"- **{len(into_stop)} 个项目终止/中止**：" + "、".join(x.get("name", "")[:24] for x in into_stop[:5]))
+    if add_rows:
+        new_amt = sum(x.get("amt") or 0 for x in add_rows)
+        L.append(f"- 新增项目合计拟发行 **{new_amt:,.2f} 亿元**")
+    if not (into_pass or into_stop or add_rows):
+        L.append("- 本周无新增项目、无状态变化，审核队列保持稳定。")
+    L.append("")
+    L.append("## 三、新增项目")
+    L.append("")
+    if add_rows:
+        L.append("| 项目名称 | 交易所 | 类型 | 拟发行金额(亿元) | 当前状态 |")
+        L.append("|---|---|---|---|---|")
+        for x in add_rows[:30]:
+            amt = x.get("amt")
+            L.append("| {} | {} | {} | {} | {} |".format(
+                x.get("name", ""), x.get("ex", ""), x.get("ptype", ""),
+                f"{amt:,.2f}" if amt else "—", x.get("sname", "")))
+    else:
+        L.append("本周无新增项目。")
+    L.append("")
+    L.append("## 四、状态变化")
+    L.append("")
+    if st_rows:
+        L.append("| 项目名称 | 交易所 | 变化 |")
+        L.append("|---|---|---|")
+        for x in st_rows[:40]:
+            L.append("| {} | {} | {} → {} |".format(
+                x.get("name", ""), x.get("ex", ""),
+                x.get("from") or "—", x.get("to") or "—"))
+    else:
+        L.append("本周无状态变化。")
+    L.append("")
+    L.append("---")
+    L.append("")
+    L.append("数据来源：上交所 / 深交所 持有型不动产信息平台（公开披露信息）。")
+
+    os.makedirs(os.path.join(BASE_DIR, WEEKLY_DIR), exist_ok=True)
+    name = f"org-{year}-W{week:02d}.md"
+    path = os.path.join(BASE_DIR, WEEKLY_DIR, name)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(L) + "\n")
+    return os.path.join(WEEKLY_DIR, name)
+
+
+BASE_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
+
+
 def main():
     print("=" * 52)
     print("  机构间REITs（持有型不动产）数据更新")
@@ -338,6 +487,25 @@ def main():
     kept_cnt = len(merged) - new_cnt
     print(f"[增量] 沿用旧分类 {kept_cnt} 条" + (f"，新项目待分类 {new_cnt} 条" if new_cnt else "，无新项目"))
 
+    # ---------- 变更监控（必须在覆盖旧快照之前比对）----------
+    prev_items = _prev_items(BASE_DIR)
+    added, st_chg, amt_chg = diff_items(prev_items, merged)
+    today_changes = {
+        "date": date.today().isoformat(),
+        "added": added,
+        "status_changed": st_chg,
+        "amount_changed": amt_chg,
+    }
+    hist = _load_json(os.path.join(BASE_DIR, CHG_FILE)) or []
+    if not isinstance(hist, list):
+        hist = []
+    hist = [h for h in hist if h.get("date") != today_changes["date"]]
+    hist.append(today_changes)
+    hist.sort(key=lambda h: h.get("date", ""), reverse=True)
+    hist = hist[:90]
+    with open(os.path.join(BASE_DIR, CHG_FILE), "w", encoding="utf-8") as f:
+        json.dump(hist, f, ensure_ascii=False, separators=(",", ":"))
+
     snap_date = date.today().isoformat()
     js = ("/* 自动生成 by reits_update.py — 机构间REITs（持有型不动产）数据快照 */\n"
           "var __REITS_SNAPSHOT__ = " + json.dumps(merged, ensure_ascii=False) + ";\n"
@@ -358,6 +526,11 @@ def main():
             "items": merged,
         }, f, ensure_ascii=False)
         f.write("\n")
+
+    # 周一自动生成变更简报（--weekly 可强制补跑）
+    wk = write_weekly(hist, merged, snap_date, force=("--weekly" in sys.argv))
+    if wk:
+        print(f"      已生成周度简报：{wk}")
 
     from collections import Counter
     ex_cnt = Counter(x["ex"] for x in merged)
