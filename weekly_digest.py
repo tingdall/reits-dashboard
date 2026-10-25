@@ -190,7 +190,7 @@ def main():
     L.append(f"*自动生成于 {today} · 数据源 reits-dashboard*")
 
     os.makedirs(os.path.join(BASE, WEEKLY_DIR), exist_ok=True)
-    name = f"REITs周度纪要-{year}-W{week:02d}.md"
+    name = f"digest-{year}-W{week:02d}.md"
     path = os.path.join(BASE, WEEKLY_DIR, name)
     with open(path, "w", encoding="utf-8") as f:
         f.write("\n".join(L) + "\n")
