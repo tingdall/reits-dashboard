@@ -1025,6 +1025,7 @@ function cols(){
   return [
     {k:"ex", t:"交易所", w:"80", nosort:true},
     {k:"ptype", t:"资产类型", w:"90", nosort:true},
+    {k:"psub2", t:"二级分类", w:"104", nosort:true},
     {k:"psub", t:"发售类型", w:"90", nosort:true},
     {k:"name", t:"基金名称", w:"280"},
     {k:"origin", t:"原始权益人", w:"190"},
@@ -1070,6 +1071,10 @@ function renderTable(){
             ? numFmt(d.amt)+'<span class="amt-est">（预计）<sup>*</sup></span>'
             : numFmt(d.amt))
         : (CUR_SEG==="public" ? '<span style="color:#b8b1a6;font-size:11.5px">注册后披露</span>' : "—");
+      /* 公募二级分类（基于底层资产实体，非名称猜测） */
+      const psub2Html = d.psub
+        ? `<span class="badge b-ok" title="${esc(d.psub_ev||"")}">${esc(d.psub)}</span>`
+        : "—";
       const subVal=(CUR_SEG==="public") ? (d.itype||"") : ec.psub;
       const psubHtml=(CUR_SEG!=="public" && d.pflag==="待分类")
         ? "<span style='color:#b8b1a6;font-size:11px'>—</span>"
@@ -1087,6 +1092,7 @@ function renderTable(){
         <td class="date">${esc(d.num||"—")}</td>
         <td>${exHtml}</td>
         <td data-cls title="点击修改项目类型">${ptypeHtml}</td>
+        ${CUR_SEG==="public" ? `<td>${psub2Html}</td>` : ""}
         <td data-cls title="点击修改二级分类">${psubHtml} ${flagHtml}</td>
         <td class="name" title="${esc(d.name)}">${esc(d.name)}</td>
         <td><span class="multi-line" title="${esc(d.origin)}">${esc(d.origin)}</span></td>
@@ -1579,7 +1585,17 @@ async function loadGongmuSnapshot(){
     if(!r.ok) return false;
     const j=await r.json();
     if(!j||!Array.isArray(j.items)||!j.items.length) return false;
-    GONGMU_DATA=j.items; GONGMU_DATE=j.date||"";
+    /* 加载二级分类（基于底层资产实体）并与项目合并 */
+    let cls={};
+    try{
+      const rc=await fetch("gongmu_cls.json",{cache:"no-store"});
+      if(rc.ok) cls=await rc.json();
+    }catch(e){}
+    GONGMU_DATA=j.items.map(x=>{
+      const c=cls[String(x.id)];
+      return c ? Object.assign({}, x, {psub:c.psub, psub_ev:c.evidence||""}) : x;
+    });
+    GONGMU_DATE=j.date||"";
     return true;
   }catch(e){
     if(Array.isArray(window.__GONGMU_SNAPSHOT__)&&window.__GONGMU_SNAPSHOT__.length){

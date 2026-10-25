@@ -49,7 +49,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add reits_snapshot.js reits_snapshot.json reits_changes.json gongmu_snapshot.json gongmu_changes.json gap_amounts.json snapshots/ weekly/
+          git add reits_snapshot.js reits_snapshot.json reits_changes.json gongmu_snapshot.json gongmu_changes.json gongmu_cls.json gap_amounts.json snapshots/ weekly/
           # 仅在确有变更时提交：数据变化 或 当日新增归档（手动重跑同一天且数据未变则跳过，避免空提交）
           if git diff --cached --quiet; then
             echo "无变化，跳过提交"
