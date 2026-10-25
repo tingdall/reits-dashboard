@@ -1185,7 +1185,11 @@ function subsOf(ptypeSet){
 }
 function renderPsubMulti(){
   const optCount=(fn)=>DATA.reduce((m,d)=>{fn(d).forEach(v=>{m[v]=(m[v]||0)+1});return m},{});
-  const allowed=subsOf(state.ptype);
+  /* 公募：psub 已按机构间统一词典产出，直接用数据实际取值；
+     机构间：沿用 ptype→psub 联动 */
+  const allowed=(CUR_SEG==="public")
+    ? new Set(DATA.map(d=>d.psub).filter(Boolean))
+    : subsOf(state.ptype);
   const psubOpts=[...allowed].map(v=>({v,l:v,c:optCount(d=>[d.psub])[v]||0}));
   buildMulti("multi-psub",psubOpts,()=>state.psub,(s)=>{state.psub=s;applyFilters();renderTable();});
 }
