@@ -38,6 +38,179 @@ def fmt_amt(v):
     return f"{v:,.2f}" if isinstance(v, (int, float)) else "—"
 
 
+def esc(s):
+    return (str(s if s is not None else "")
+            .replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace('"', "&quot;"))
+
+
+HTML_CSS = """
+:root{--bg:#faf9f7;--card:#fff;--ink:#1f1d1b;--ink2:#4a453f;--muted:#7d766c;
+--line:#e7e1d7;--line2:#f0ebe3;--acc:#d94016;--wash:#fdf3ee;--wash-line:#f6dcd0}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink2);font-size:15px;line-height:1.7;
+font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+-webkit-font-smoothing:antialiased;overflow-x:hidden;max-width:100%}
+.wrap{max-width:820px;width:100%;margin:0 auto;padding:0 18px 56px}
+header{padding:34px 0 22px;border-bottom:1px solid var(--line)}
+.badge{display:inline-block;font-size:12px;font-weight:700;letter-spacing:.08em;color:var(--acc);
+background:var(--wash);border:1px solid var(--wash-line);border-radius:999px;padding:4px 12px}
+h1{font-size:clamp(22px,5vw,30px);margin:14px 0 8px;color:var(--ink);font-weight:800;letter-spacing:-.02em;line-height:1.3}
+.meta{font-size:13px;color:var(--muted);margin:0}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:22px 0 6px}
+@media(max-width:620px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px;
+box-shadow:0 1px 2px rgba(31,29,27,.04),0 10px 24px -16px rgba(217,64,22,.5)}
+.stat .n{font-size:clamp(20px,4.4vw,26px);font-weight:800;color:var(--acc);letter-spacing:-.02em;line-height:1.1;
+font-variant-numeric:tabular-nums}
+.stat .k{font-size:12px;color:var(--muted);margin-top:5px}
+section{margin-top:30px}
+h2{font-size:17px;color:var(--ink);font-weight:750;margin:0 0 12px;letter-spacing:-.01em;
+padding-left:11px;border-left:3px solid var(--acc);line-height:1.3}
+.tw{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+table{border-collapse:collapse;width:100%;font-size:13.5px;min-width:520px}
+th{background:#faf9f6;text-align:left;font-weight:700;color:var(--ink);padding:10px 12px;
+border-bottom:1px solid var(--line);font-size:12.5px;white-space:nowrap}
+td{padding:9px 12px;border-bottom:1px solid var(--line2);vertical-align:top}
+tr:last-child td{border-bottom:none}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.total{font-weight:700;color:var(--ink)}
+.insight{background:var(--wash);border:1px solid var(--wash-line);border-radius:12px;padding:14px 16px;
+margin-top:12px;font-size:14px;color:var(--ink2)}
+.insight b{color:var(--acc)}
+ul{margin:0;padding-left:20px}
+li{margin-bottom:7px}
+.empty{color:var(--muted);font-size:14px;padding:10px 2px}
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--line);font-size:12.5px;color:var(--muted);line-height:1.8}
+"""
+
+
+def build_html(year, week, start, today, g_items, o_items, g_amt, o_amt,
+               g_cnt_amt, o_cnt_amt, g_running, g_pass, g_stop,
+               o_running, o_pass, o_stop, g_avg, o_avg,
+               g_add, g_st, o_add, o_st, all_add, all_st, points):
+    def rows_add():
+        if not all_add:
+            return '<tr><td colspan="6" class="empty">本周无新增项目</td></tr>'
+        out = []
+        for seg, x in all_add[:40]:
+            out.append(
+                '<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td class="num">{}</td><td>{}</td></tr>'.format(
+                    seg, esc((x.get("name") or "")[:60]), esc(x.get("ex", "")),
+                    esc(x.get("ptype", "")), fmt_amt(x.get("amt")), esc(x.get("sname", ""))))
+        return "".join(out)
+
+    def rows_st():
+        if not all_st:
+            return '<tr><td colspan="4" class="empty">本周无状态变化</td></tr>'
+        out = []
+        for seg, x in all_st[:50]:
+            out.append(
+                '<tr><td>{}</td><td>{}</td><td>{}</td><td>{} → {}</td></tr>'.format(
+                    seg, esc((x.get("name") or "")[:60]), esc(x.get("ex", "")),
+                    esc(x.get("from") or "—"), esc(x.get("to") or "—")))
+        return "".join(out)
+
+    pts = "".join(f"<li>{p[2:]}</li>" for p in points)   # 去掉 md 的 "- "
+    ga, oa = fmt_amt(g_amt), fmt_amt(o_amt)
+    g_rate = f"{g_cnt_amt}/{len(g_items)}"
+    o_rate = f"{o_cnt_amt}/{len(o_items)}"
+    multi = (o_avg / g_avg) if g_avg else 0
+    struct = ("机构间以单一大额项目为主，公募更分散。" if o_avg > g_avg else "公募单项目体量更大。")
+
+    return f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>REITs 周度纪要 · {year}-W{week:02d}</title>
+<style>{HTML_CSS}</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="badge">周度纪要 · {year}-W{week:02d}</span>
+    <h1>REITs 市场周度纪要</h1>
+    <p class="meta">统计区间 {start} ~ {today}　｜　数据截至 {today}</p>
+    <p class="meta">覆盖：公募 REITs（上交所 + 深交所）· 机构间 REITs（持有型不动产）</p>
+  </header>
+
+  <div class="stats">
+    <div class="stat"><div class="n">{len(g_items) + len(o_items)}</div><div class="k">在审及存量项目</div></div>
+    <div class="stat"><div class="n">{fmt_amt(g_amt + o_amt)}</div><div class="k">拟发行金额（亿元）</div></div>
+    <div class="stat"><div class="n">{len(g_add) + len(o_add)}</div><div class="k">本周新增项目</div></div>
+    <div class="stat"><div class="n">{len(g_st) + len(o_st)}</div><div class="k">本周状态变化</div></div>
+  </div>
+
+  <section>
+    <h2>一、两个市场的结构对比</h2>
+    <div class="tw"><table>
+      <thead><tr><th>维度</th><th class="num">公募 REITs</th><th class="num">机构间 REITs</th><th class="num">合计</th></tr></thead>
+      <tbody>
+        <tr><td>项目总数</td><td class="num">{len(g_items)}</td><td class="num">{len(o_items)}</td><td class="num total">{len(g_items) + len(o_items)}</td></tr>
+        <tr><td>拟发行金额（亿元）</td><td class="num">{ga}</td><td class="num">{oa}</td><td class="num total">{fmt_amt(g_amt + o_amt)}</td></tr>
+        <tr><td>金额披露率</td><td class="num">{g_rate}</td><td class="num">{o_rate}</td><td class="num">{g_cnt_amt + o_cnt_amt}/{len(g_items) + len(o_items)}</td></tr>
+        <tr><td>单项目均值（亿元）</td><td class="num">{g_avg:,.2f}</td><td class="num">{o_avg:,.2f}</td><td class="num">—</td></tr>
+        <tr><td>审核中</td><td class="num">{g_running}</td><td class="num">{o_running}</td><td class="num total">{g_running + o_running}</td></tr>
+        <tr><td>注册生效 / 审核通过</td><td class="num">{g_pass}</td><td class="num">{o_pass}</td><td class="num total">{g_pass + o_pass}</td></tr>
+        <tr><td>终止 / 中止</td><td class="num">{g_stop}</td><td class="num">{o_stop}</td><td class="num total">{g_stop + o_stop}</td></tr>
+      </tbody>
+    </table></div>
+    <div class="insight">
+      机构间单项目平均拟发行 <b>{o_avg:,.2f} 亿</b>，公募 <b>{g_avg:,.2f} 亿</b>（{multi:.1f} 倍）。
+      {struct}
+      公募深交所在审项目不披露规模，故公募金额合计为<b>下限</b>。
+    </div>
+  </section>
+
+  <section>
+    <h2>二、本周变化</h2>
+    <div class="tw"><table>
+      <thead><tr><th>板块</th><th class="num">新增项目</th><th class="num">状态变化</th></tr></thead>
+      <tbody>
+        <tr><td>公募 REITs</td><td class="num">{len(g_add)}</td><td class="num">{len(g_st)}</td></tr>
+        <tr><td>机构间 REITs</td><td class="num">{len(o_add)}</td><td class="num">{len(o_st)}</td></tr>
+        <tr><td class="total">合计</td><td class="num total">{len(g_add) + len(o_add)}</td><td class="num total">{len(g_st) + len(o_st)}</td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>三、本周看点</h2>
+    <ul>{pts}</ul>
+  </section>
+
+  <section>
+    <h2>四、新增项目明细</h2>
+    <div class="tw"><table>
+      <thead><tr><th>板块</th><th>名称</th><th>交易所</th><th>类型</th><th class="num">金额(亿)</th><th>状态</th></tr></thead>
+      <tbody>{rows_add()}</tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>五、状态变化明细</h2>
+    <div class="tw"><table>
+      <thead><tr><th>板块</th><th>名称</th><th>交易所</th><th>变化</th></tr></thead>
+      <tbody>{rows_st()}</tbody>
+    </table></div>
+  </section>
+
+  <footer>
+    <b>口径说明</b><br>
+    · 数据来源：上交所 / 深交所 公开披露信息（公募 REITs 信息平台、持有型不动产信息平台）<br>
+    · 公募「注册生效」对应 stage=6；机构间「审核通过」对应交易所状态码 4<br>
+    · 公募深交所仅在注册生效后披露拟发行规模，未披露项目不计入合计<br>
+    · 「已通过」为存量累计（含历年已发行产品），判断当期节奏请看「审核中」<br>
+    · 两板块金额为不同产品类型的简单加总，仅作规模参考<br>
+    <br>自动生成于 {today} · 数据源 reits-dashboard
+  </footer>
+</div>
+</body>
+</html>
+"""
+
+
 def main():
     force = "--force" in sys.argv
     if date.today().weekday() != 0 and not force:
@@ -190,11 +363,21 @@ def main():
     L.append(f"*自动生成于 {today} · 数据源 reits-dashboard*")
 
     os.makedirs(os.path.join(BASE, WEEKLY_DIR), exist_ok=True)
-    name = f"digest-{year}-W{week:02d}.md"
-    path = os.path.join(BASE, WEEKLY_DIR, name)
-    with open(path, "w", encoding="utf-8") as f:
+    base_name = f"digest-{year}-W{week:02d}"
+
+    md_path = os.path.join(BASE, WEEKLY_DIR, base_name + ".md")
+    with open(md_path, "w", encoding="utf-8") as f:
         f.write("\n".join(L) + "\n")
-    print(f"已生成：{os.path.join(WEEKLY_DIR, name)}")
+
+    html_doc = build_html(year, week, start, today, g_items, o_items, g_amt, o_amt,
+                          g_cnt_amt, o_cnt_amt, g_running, g_pass, g_stop,
+                          o_running, o_pass, o_stop, g_avg, o_avg,
+                          g_add, g_st, o_add, o_st, all_add, all_st, points)
+    html_path = os.path.join(BASE, WEEKLY_DIR, base_name + ".html")
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(html_doc)
+
+    print(f"已生成：{os.path.join(WEEKLY_DIR, base_name)}.md / .html")
     print(f"  公募 {len(g_items)} 条 / {fmt_amt(g_amt)} 亿　机构间 {len(o_items)} 条 / {fmt_amt(o_amt)} 亿")
 
 
