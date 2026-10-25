@@ -240,6 +240,105 @@ def diff_items(prev, curr):
     return added, status_chg, amt_chg
 
 
+WEEKLY_DIR = "weekly"
+
+
+def write_weekly(hist, items, today, force=False):
+    """每周一生成一份变更简报（Markdown）。非周一且未强制时返回 None。"""
+    from datetime import datetime as _dt
+    now = _dt.now()
+    if now.weekday() != 0 and not force:
+        return None
+
+    year, week, _ = now.isocalendar()
+    days = hist[:7]
+    start = days[-1].get("date") if days else today
+    end = days[0].get("date") if days else today
+
+    add_rows, st_rows = [], []
+    for h in days:
+        add_rows.extend(h.get("added", []))
+        st_rows.extend(h.get("status_changed", []))
+
+    amt_sum = round(sum(i["amt"] for i in items if i["amt"]), 2)
+    cnt_public = sum(1 for i in items if i.get("amt"))
+    active = sum(1 for i in items if 1 <= int(i.get("stage") or 0) <= 5)
+    reg = sum(1 for i in items if int(i.get("stage") or 0) == 6)
+    stop = sum(1 for i in items if int(i.get("stage") or 0) == 9)
+
+    into_reg = [x for x in st_rows if int(x.get("stage_to") or 0) == 6]
+    into_stop = [x for x in st_rows if int(x.get("stage_to") or 0) == 9]
+
+    L = []
+    L.append(f"# 公募 REITs 周度变更简报 · {year}-W{week:02d}")
+    L.append("")
+    L.append(f"> 统计区间：{start} ~ {end}　｜　数据截至：{today}　｜　数据源：上交所 + 深交所公募REITs信息平台")
+    L.append("")
+    L.append("## 一、本周概览")
+    L.append("")
+    L.append(f"- 新增项目：**{len(add_rows)}** 个")
+    L.append(f"- 状态变化：**{len(st_rows)}** 次")
+    L.append(f"- 存量项目：**{len(items)}** 个（审核中 {active} · 注册生效 {reg} · 终止/中止 {stop}）")
+    L.append(f"- 拟发行金额合计：**{amt_sum:,.2f} 亿元**（{cnt_public}/{len(items)} 条已披露）")
+    L.append("")
+
+    L.append("## 二、本周看点")
+    L.append("")
+    if into_reg:
+        L.append(f"- **{len(into_reg)} 个项目进入注册阶段**：" + "、".join(x.get("name", "")[:24] for x in into_reg[:5]))
+    if into_stop:
+        L.append(f"- **{len(into_stop)} 个项目终止/中止**：" + "、".join(x.get("name", "")[:24] for x in into_stop[:5]))
+    if add_rows:
+        new_amt = sum(x.get("amt") or 0 for x in add_rows)
+        L.append(f"- 新增项目合计拟发行 **{new_amt:,.2f} 亿元**")
+    if not (into_reg or into_stop or add_rows):
+        L.append("- 本周无新增项目、无状态变化，审核队列保持稳定。")
+    L.append("")
+
+    L.append("## 三、新增项目")
+    L.append("")
+    if add_rows:
+        L.append("| 基金名称 | 交易所 | 类型 | 资产类型 | 拟发行金额(亿元) | 当前状态 |")
+        L.append("|---|---|---|---|---|---|")
+        for x in add_rows[:30]:
+            amt = x.get("amt")
+            L.append("| {} | {} | {} | {} | {} | {} |".format(
+                x.get("name", ""), x.get("ex", ""), x.get("itype", ""),
+                x.get("ptype", ""), f"{amt:,.2f}" if amt else "注册后披露", x.get("sname", "")))
+        if len(add_rows) > 30:
+            L.append(f"\n> 另有 {len(add_rows) - 30} 个新增项目，详见看板明细。")
+    else:
+        L.append("本周无新增项目。")
+    L.append("")
+
+    L.append("## 四、状态变化")
+    L.append("")
+    if st_rows:
+        L.append("| 基金名称 | 交易所 | 变化 |")
+        L.append("|---|---|---|")
+        for x in st_rows[:40]:
+            L.append("| {} | {} | {} → {} |".format(
+                x.get("name", ""), x.get("ex", ""),
+                x.get("from") or "—", x.get("to") or "—"))
+        if len(st_rows) > 40:
+            L.append(f"\n> 另有 {len(st_rows) - 40} 次状态变化，详见看板明细。")
+    else:
+        L.append("本周无状态变化。")
+    L.append("")
+    L.append("---")
+    L.append("")
+    L.append("数据来源：上交所 REITs 信息平台、深交所公募REITs信息平台（公开披露信息）。")
+    L.append("拟发行金额口径以交易所披露为准：深交所仅在项目「注册生效」后公开拟发行规模，")
+    L.append("故在审/终止项目显示「注册后披露」，不计入合计。")
+
+    os.makedirs(os.path.join(BASE, WEEKLY_DIR), exist_ok=True)
+    name = f"{year}-W{week:02d}.md"
+    path = os.path.join(BASE, WEEKLY_DIR, name)
+    with open(path, "w", encoding="utf-8") as f:
+        f.write("\n".join(L) + "\n")
+    return os.path.join(WEEKLY_DIR, name)
+
+
 def main():
     cst = timezone(timedelta(hours=8))
     today = datetime.now(cst).strftime("%Y-%m-%d")
@@ -328,6 +427,11 @@ def main():
         st[STAGE_NAME.get(i["stage"], "未知")] = st.get(STAGE_NAME.get(i["stage"], "未知"), 0) + 1
     print("阶段分布：", st)
     print("样例：", json.dumps(items[0], ensure_ascii=False))
+
+    # 周一自动生成周度变更简报（--weekly 可强制补跑）
+    wk = write_weekly(hist, items, today, force=("--weekly" in sys.argv))
+    if wk:
+        print(f"  [周报] 已生成 {wk}")
 
 
 if __name__ == "__main__":

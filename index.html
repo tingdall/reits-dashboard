@@ -804,6 +804,10 @@ function renderStats(){
   const fbLab=isPub?"审核中（受理至问询）":"已反馈";
   const totalLab=isPub?"公募REITs项目总数":"机构间REITs项目总数";
   const sum=cur.reduce((a,d)=>a+((d.amt&&!isNaN(d.amt))?d.amt:0),0);
+  const cntAmt=cur.filter(d=>d.amt&&!isNaN(d.amt)).length;
+  const amtNote = isPub
+    ? '<br><b style="font-weight:500;color:#4a453f;font-size:11px">仅含已披露 '+cntAmt+'/'+total+' 条</b>'
+    : '';
   /* 分所小注 */
   const cntSse=DATA.filter(d=>d.ex==="上交所").length;
   const cntSzse=DATA.filter(d=>d.ex==="深交所").length;
@@ -814,7 +818,7 @@ function renderStats(){
     <div class="stat"><div class="num">${total}<small>个</small></div><div class="lab">${totalLab}<br><b style="font-weight:500;color:var(--ink-2);font-size:11px">${subNote}</b></div></div>
     <div class="stat"><div class="num">${ok}<small>个</small></div><div class="lab">${okLab}</div></div>
     <div class="stat"><div class="num">${fb}<small>个</small></div><div class="lab">${fbLab}</div></div>
-    <div class="stat"><div class="num">${sum.toLocaleString("zh-CN",{maximumFractionDigits:1})}<small>亿元</small></div><div class="lab">拟发行金额合计</div></div>`;
+    <div class="stat"><div class="num">${sum.toLocaleString("zh-CN",{maximumFractionDigits:1})}<small>亿元</small></div><div class="lab">拟发行金额合计${amtNote}</div></div>`;
 }
 
 /* 状态环形图：圆环（stroke 描边弧线，中心留空放数字） */
@@ -1006,12 +1010,30 @@ const COLS=[
   {k:"up", t:"更新日期", w:"95"},
   {k:"acc", t:"受理日期", w:"95"}
 ];
+/* 列定义：机构间沿用原名；公募换成 REITs 口径（列数不变，仅语义与文案不同） */
+function cols(){
+  if(CUR_SEG!=="public") return COLS;
+  return [
+    {k:"ex", t:"交易所", w:"80", nosort:true},
+    {k:"ptype", t:"资产类型", w:"90", nosort:true},
+    {k:"psub", t:"发售类型", w:"90", nosort:true},
+    {k:"name", t:"基金名称", w:"280"},
+    {k:"origin", t:"原始权益人", w:"190"},
+    {k:"mgr", t:"专项计划管理人", w:"170"},
+    {k:"writer", t:"基金管理人", w:"180"},
+    {k:"amt", t:"拟发行金额(亿元)", w:"120"},
+    {k:"status", t:"项目状态", w:"90"},
+    {k:"up", t:"更新日期", w:"95"},
+    {k:"acc", t:"受理日期", w:"95"}
+  ];
+}
+
 function renderTable(){
   const tagDefs=allTagDefs();
   document.getElementById("thead").innerHTML=`<tr>
     <th style="width:110px">标记</th>
     <th style="width:44px">编号</th>
-    ${COLS.map(c=>{
+    ${cols().map(c=>{
       const on=state.sortKey===c.k;
       const arrow=on?(state.sortDir===1?"▲":"▼"):"";
       const cls=c.nosort?"":"sortable";
@@ -1034,10 +1056,13 @@ function renderTable(){
       const ptypeHtml=ec.ptype
         ? `<span class="badge ${ec.ptype==="经营权类"?"b-sb":"b-ok"}">${esc(ec.ptype)}</span>`
         : "<span style='color:#b8b1a6;font-size:11px'>—</span>";
-      const psubHtml=(d.pflag==="待分类")
-        ? "<span style='color:#b8b1a6;font-size:11px'>—</span>"   /* 真待分类 → 不显示 psub，与待分类互斥 */
-        : (ec.psub
-          ? `<span class="badge b-zz">${esc(ec.psub)}</span>`
+      const amtHtml = d.amt!=null ? numFmt(d.amt)
+        : (CUR_SEG==="public" ? '<span style="color:#b8b1a6;font-size:11.5px">注册后披露</span>' : "—");
+      const subVal=(CUR_SEG==="public") ? (d.itype||"") : ec.psub;
+      const psubHtml=(CUR_SEG!=="public" && d.pflag==="待分类")
+        ? "<span style='color:#b8b1a6;font-size:11px'>—</span>"
+        : (subVal
+          ? `<span class="badge b-zz">${esc(subVal)}</span>`
           : "<span style='color:#b8b1a6;font-size:11px'>—</span>");
       const exHtml=d.ex==="深交所"
         ? `<span class="ex-badge ex-szse">深交所</span>`
@@ -1055,7 +1080,7 @@ function renderTable(){
         <td><span class="multi-line" title="${esc(d.origin)}">${esc(d.origin)}</span></td>
         <td><span class="multi-line" title="${esc(d.mgr)}">${esc(d.mgr)}</span></td>
         <td><span class="multi-line" title="${esc(d.writer)}">${esc(d.writer)}</span></td>
-        <td class="amount">${numFmt(d.amt)}</td>
+        <td class="amount">${amtHtml}</td>
         <td><span class="badge ${stCls}">${esc(st)}</span></td>
         <td class="date">${dateFmt(d.up)}</td>
         <td class="date">${dateFmt(d.acc)}</td>
