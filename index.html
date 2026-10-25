@@ -276,6 +276,21 @@ td[data-cls]:hover{background:#fdf3ec}
 .segbar button.on{background:#d94016;color:#fff;border-color:#d94016;box-shadow:0 8px 20px -10px rgba(217,64,22,.8)}
 .segbar button .tag{font-weight:400;font-size:11.5px;opacity:.72;margin-left:7px}
 .segbar .seg-note{margin-left:auto;font-size:12px;color:var(--gray)}
+
+/* ===== 近期变更面板（公募）===== */
+.chg-wrap{max-width:1440px;margin:14px auto 0;padding:0 28px}
+.chg-panel{background:#fff;border:1px solid #e7e1d7;border-radius:12px;padding:14px 18px}
+.chg-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.chg-head b{font-size:14px;color:#1f1d1b}
+.chg-head span{font-size:12.5px;color:#7d766c}
+.chg-body{display:flex;flex-direction:column;gap:6px}
+.chg-row{display:flex;gap:9px;align-items:center;font-size:13px}
+.chg-tag{flex:0 0 auto;font-size:11.5px;font-weight:600;padding:1px 7px;border-radius:5px}
+.chg-tag.add{background:#fdeee6;color:#b8340f;border:1px solid #f6dcd0}
+.chg-tag.st{background:#eaf1fb;color:#2f6fb5;border:1px solid #d3e2f5}
+.chg-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a453f}
+.chg-meta{flex:0 0 auto;font-size:12px;color:#7d766c}
+.chg-empty{font-size:13px;color:#7d766c;padding:6px 0}
 </style>
 
 <!-- Google Analytics 4 访问统计：填入测量 ID 即生效；留空则完全不加载外部脚本 -->
@@ -328,6 +343,9 @@ td[data-cls]:hover{background:#fdf3ec}
 </div>
 
 <div class="stats" id="statsRow"></div>
+
+<!-- 近期变更（仅公募板块显示） -->
+<div class="chg-wrap" id="changesPanel" style="display:none"></div>
 
 <!-- 图表区 -->
 <div class="charts">
@@ -1482,6 +1500,35 @@ document.getElementById("dlSnapFile").addEventListener("click",()=>{
  * 板块切换（公募 REITs / 机构间 REITs）
  * 设计：不动机构间原有逻辑，仅在切换时替换 DATA 并重渲染
  * ========================================================== */
+let CHANGES=[];
+async function loadChanges(){
+  try{
+    const r=await fetch("gongmu_changes.json",{cache:"no-store"});
+    if(!r.ok) return;
+    const j=await r.json();
+    if(Array.isArray(j)) CHANGES=j;
+  }catch(e){}
+}
+function renderChanges(){
+  const box=document.getElementById("changesPanel");
+  if(!box) return;
+  if(CUR_SEG!=="public"||!CHANGES.length){ box.style.display="none"; return; }
+  const days=CHANGES.slice(0,7);
+  const addN=days.reduce((a,d)=>a+((d.added||[]).length),0);
+  const stN=days.reduce((a,d)=>a+((d.status_changed||[]).length),0);
+  const latest=CHANGES[0]||{};
+  const rows=[];
+  (latest.added||[]).slice(0,5).forEach(x=>rows.push(
+    '<div class="chg-row"><span class="chg-tag add">新增</span><span class="chg-name" title="'+esc(x.name)+'">'+esc(x.name)+'</span><span class="chg-meta">'+esc(x.ex||"")+' · '+esc(x.sname||"")+'</span></div>'));
+  (latest.status_changed||[]).slice(0,8).forEach(x=>rows.push(
+    '<div class="chg-row"><span class="chg-tag st">状态</span><span class="chg-name" title="'+esc(x.name)+'">'+esc(x.name)+'</span><span class="chg-meta">'+esc(x.from||"—")+' → '+esc(x.to||"—")+'</span></div>'));
+  box.style.display="";
+  box.innerHTML='<div class="chg-panel"><div class="chg-head"><b>近期变更</b><span>近 7 日：新增 '+addN+' 个 · 状态变化 '+stN+' 个'
+    +(latest.prev_date?' · 最近对比 '+esc(latest.prev_date)+' → '+esc(latest.date):'')
+    +'</span></div><div class="chg-body">'
+    +(rows.join("")||'<div class="chg-empty">近期无新增项目或状态变化</div>')+'</div></div>';
+}
+
 async function loadGongmuSnapshot(){
   try{
     const r=await fetch("gongmu_snapshot.json",{cache:"no-store"});
@@ -1513,7 +1560,7 @@ function switchSeg(seg){
     if(sd) sd.textContent=GONGMU_DATE||"—";
   }else{
     if(t) t.textContent="机构间REITs数据看板";
-    if(s) s.textContent="持有型不动产资产支持专项计划 · 机构内部数据管理";
+    if(s) s.textContent="持有型不动产资产支持专项计划 · 申报审核进度";
     loadData();                    /* 恢复机构间数据（原逻辑） */
   }
 
@@ -1530,12 +1577,13 @@ function switchSeg(seg){
   const note=document.getElementById("segNote");
   if(note) note.textContent=seg==="public"
     ? "数据来源：上交所 REITs 信息平台 + 深交所公募REITs信息平台"
-    : "数据来源：上交所 / 深交所 持有型不动产权威披露";
+    : "数据来源：上交所 持有型不动产信息平台 + 深交所 持有型不动产信息平台";
 
   try{ refreshFilterSources(); }catch(e){}
   renderStats(); renderTagRow();
   renderChartStatus(); renderChartTopMgr(); renderChartTrend();
   applyFilters(); renderTable();
+  renderChanges();
 }
 
 function bindSegSwitch(){
@@ -1562,6 +1610,7 @@ function initAll(){
 
   /* 机构间渲染完成后：绑定板块切换，并在公募数据可用时默认切到公募 */
   bindSegSwitch();
+  loadChanges().then(()=>{ if(CUR_SEG==="public") renderChanges(); });
   loadGongmuSnapshot().then(ok=>{
     /* 支持 #inter / #public 直达；默认公募 */
     if(ok) switchSeg(location.hash==="#inter"?"inter":"public");

@@ -192,6 +192,54 @@ def fetch_szse():
     return items, total, stage_stat
 
 
+HIST_FILE = "gongmu_changes.json"   # 变更历史（累积，保留 90 天）
+HIST_KEEP_DAYS = 90
+
+
+def load_json_safe(path):
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def diff_items(prev, curr):
+    """对比上一版快照，返回 (新增, 状态变化, 金额变化)。"""
+    pm = {}
+    if prev and isinstance(prev.get("items"), list):
+        for x in prev["items"]:
+            if x.get("id"):
+                pm[str(x["id"])] = x
+    cm = {str(x["id"]): x for x in curr if x.get("id")}
+
+    added, status_chg, amt_chg = [], [], []
+    for k, cur in cm.items():
+        old = pm.get(k)
+        if not old:
+            added.append({
+                "id": k, "name": cur.get("name"), "ex": cur.get("ex"),
+                "amt": cur.get("amt"), "sname": cur.get("sname"),
+                "itype": cur.get("itype"), "ptype": cur.get("ptype"),
+            })
+            continue
+        o_st, n_st = str(old.get("stage")), str(cur.get("stage"))
+        o_sn, n_sn = (old.get("sname") or ""), (cur.get("sname") or "")
+        if o_st != n_st or o_sn != n_sn:
+            status_chg.append({
+                "id": k, "name": cur.get("name"), "ex": cur.get("ex"),
+                "from": o_sn, "to": n_sn,
+                "stage_from": old.get("stage"), "stage_to": cur.get("stage"),
+            })
+        o_amt, n_amt = old.get("amt"), cur.get("amt")
+        if (o_amt is None) != (n_amt is None) or (o_amt or 0) != (n_amt or 0):
+            amt_chg.append({
+                "id": k, "name": cur.get("name"), "ex": cur.get("ex"),
+                "from": o_amt, "to": n_amt,
+            })
+    return added, status_chg, amt_chg
+
+
 def main():
     cst = timezone(timedelta(hours=8))
     today = datetime.now(cst).strftime("%Y-%m-%d")
@@ -235,12 +283,35 @@ def main():
         sys.exit(1)
 
     amt_sum = round(sum(i["amt"] for i in items if i["amt"]), 2)
+
+    # ---------- 变更监控：与上一版快照比对 ----------
+    prev = load_json_safe(os.path.join(BASE, OUT_JSON))
+    added, status_chg, amt_chg = diff_items(prev, items)
+    today_changes = {
+        "date": today,
+        "prev_date": (prev or {}).get("date", ""),
+        "added": added,
+        "status_changed": status_chg,
+        "amount_changed": amt_chg,
+    }
+    # 累积历史（同日重跑覆盖，保留最近 N 天）
+    hist = load_json_safe(os.path.join(BASE, HIST_FILE)) or []
+    if not isinstance(hist, list):
+        hist = []
+    hist = [h for h in hist if h.get("date") != today]
+    hist.append(today_changes)
+    hist.sort(key=lambda h: h.get("date", ""), reverse=True)
+    hist = hist[:HIST_KEEP_DAYS]
+    with open(os.path.join(BASE, HIST_FILE), "w", encoding="utf-8") as f:
+        json.dump(hist, f, ensure_ascii=False, separators=(",", ":"))
+
     payload = {
         "date": today,
         "seg": "public",
         "count": len(items),
         "amount_sum": amt_sum,
         "stage_stat": stage_stat,
+        "changes": today_changes,
         "items": items,
     }
 
