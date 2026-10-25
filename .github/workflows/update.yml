@@ -33,6 +33,9 @@ jobs:
       - name: 运行抓取脚本（公募 REITs）
         run: python gongmu_update.py
 
+      - name: 生成 REITs 周度纪要（公募 + 机构间合并，仅周一生效）
+        run: python weekly_digest.py
+
       - name: 归档每日快照副本
         run: |
           TODAY=$(TZ=Asia/Shanghai date +%F)
