@@ -291,6 +291,12 @@ td[data-cls]:hover{background:#fdf3ec}
 .chg-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a453f}
 .chg-meta{flex:0 0 auto;font-size:12px;color:#7d766c}
 .chg-empty{font-size:13px;color:#7d766c;padding:6px 0}
+
+/* 预计募集规模标注（招募说明书口径） */
+.amt-est{font-size:11px;color:#b8340f;margin-left:2px;font-weight:600;white-space:nowrap}
+.amt-est sup{font-size:9px;vertical-align:super;margin-left:1px}
+.amt-foot{font-size:12px;color:#7d766c;padding:10px 2px 0;line-height:1.7}
+.amt-foot b{color:#b8340f;font-weight:600}
 </style>
 
 <!-- Google Analytics 4 访问统计：填入测量 ID 即生效；留空则完全不加载外部脚本 -->
@@ -458,6 +464,9 @@ td[data-cls]:hover{background:#fdf3ec}
         <thead id="thead"></thead>
         <tbody id="tbody"></tbody>
       </table>
+    </div>
+    <div class="amt-foot" id="amtFoot" style="display:none">
+      <b>*</b> 募集说明书中预计募集规模，非最终发行规模（数据来源：各项目招募说明书）
     </div>
   </section>
 </div>
@@ -1056,7 +1065,10 @@ function renderTable(){
       const ptypeHtml=ec.ptype
         ? `<span class="badge ${ec.ptype==="经营权类"?"b-sb":"b-ok"}">${esc(ec.ptype)}</span>`
         : "<span style='color:#b8b1a6;font-size:11px'>—</span>";
-      const amtHtml = d.amt!=null ? numFmt(d.amt)
+      const amtHtml = d.amt!=null
+        ? (d.amt_est
+            ? numFmt(d.amt)+'<span class="amt-est">（预计）<sup>*</sup></span>'
+            : numFmt(d.amt))
         : (CUR_SEG==="public" ? '<span style="color:#b8b1a6;font-size:11.5px">注册后披露</span>' : "—");
       const subVal=(CUR_SEG==="public") ? (d.itype||"") : ec.psub;
       const psubHtml=(CUR_SEG!=="public" && d.pflag==="待分类")
@@ -1090,6 +1102,9 @@ function renderTable(){
   }
   document.getElementById("showCount").textContent=filtered.length;
   renderFilterDesc();
+  /* 预计金额脚注：仅当公募板块存在招募说明书来源的数据时显示 */
+  const foot=document.getElementById("amtFoot");
+  if(foot) foot.style.display=(CUR_SEG==="public" && filtered.some(d=>d.amt_est)) ? "" : "none";
 }
 function renderFilterDesc(){
   const parts=[];

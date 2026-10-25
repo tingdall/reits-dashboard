@@ -339,6 +339,37 @@ def write_weekly(hist, items, today, force=False):
     return os.path.join(WEEKLY_DIR, name)
 
 
+GAP_FILE = "gap_amounts.json"
+
+
+def apply_gap_amounts(items, base):
+    """用招募说明书提取的「预计募集规模」补齐列表接口缺失的金额。
+    命中项会打上 amt_est=True 标记，前端据此标注「（预计）」。
+    """
+    p = os.path.join(base, GAP_FILE)
+    if not os.path.exists(p):
+        return 0
+    try:
+        with open(p, encoding="utf-8") as f:
+            gap = json.load(f)
+    except Exception:
+        return 0
+    if not isinstance(gap, dict):
+        return 0
+    n = 0
+    for x in items:
+        if x.get("amt") is not None:
+            continue
+        g = gap.get(str(x.get("id"))) or {}
+        amt = g.get("amt")
+        if isinstance(amt, (int, float)) and amt > 0:
+            x["amt"] = round(float(amt), 2)
+            x["amt_est"] = True
+            x["amt_src"] = "招募说明书"
+            n += 1
+    return n
+
+
 def main():
     cst = timezone(timedelta(hours=8))
     today = datetime.now(cst).strftime("%Y-%m-%d")
@@ -375,6 +406,12 @@ def main():
         sys.exit(1)
 
     items = sse_items + szse_items
+
+    # 用招募说明书补齐深交所缺失的「预计募集规模」
+    n_gap = apply_gap_amounts(items, BASE)
+    if n_gap:
+        print(f"  已用招募说明书补齐 {n_gap} 个项目的预计募集规模")
+
     ids = [i["id"] for i in items if i["id"]]
     dup = len(ids) - len(set(ids))
     if dup:
