@@ -1,0 +1,10 @@
+# 忽略备份与本地临时文件
+*.bak
+*.tmp
+_merge_*
+__pycache__/
+*.pyc
+# 改造前备份（有 git 历史即可回溯）
+index.backup-*.html
+# 公募快照的 JS 形式（看板仅用 .json，勿提交）
+gongmu_snapshot.js

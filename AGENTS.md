@@ -1,41 +1,51 @@
-# AGENTS.md — 机构间REITs数据看板
+# AGENTS.md — REITs 双板块数据看板
 
 ## 一句话定位
-上交所 + 深交所「持有型不动产」（机构间REIT）项目数据的单文件 HTML 看板，跟踪项目状态、分类与标记。
+上交所 + 深交所 **公募 REITs** 与 **机构间 REITs（持有型不动产）** 的申报审核进度看板，单文件 `index.html`，顶部 Tab 切换两个板块，每日自动更新。
 
 ## 怎么跑起来
-- **打开看板**：浏览器打开 `机构间REITs数据看板_v5分类版.html`（纯静态单文件，零依赖，无需服务器；含双系统更新工具）
-- **更新数据**：双击 `更新数据.bat`（Windows）/ `更新数据.command`（Mac，从看板页面下载）自动抓取两所最新数据并回写 HTML；或命令行 `python reits_update.py`
-- **查看基础版**：`机构间REITs数据看板_正式版.html`（沪深融合基础功能）
+- **看板**：浏览器打开 `index.html`；线上 https://tingdall.github.io/reits-dashboard/ （`#public` / `#inter` 可直达板块）
+- **手动更新**：`python reits_update.py`（机构间）→ `python gongmu_update.py`（公募）→ `python weekly_digest.py --force`（周报，可选）
+- **本地预览必须走 HTTP**：`python -m http.server 8000`（`file://` 下 `fetch` 被 CORS 拦截，外部快照加载不到）
 
 ## 技术栈
-- 纯 HTML + CSS + JS 单文件（品牌橙 #d94016），无框架、无 CDN、无构建
-- 图表：原生 SVG（圆环图、横向条形图），CSS 实现交互
-- Python 标准库 urllib 抓取（零第三方依赖）
+纯 HTML/CSS/JS 单文件（品牌橙 #d94016，零外部依赖）；图表为原生 SVG；抓取仅用 Python 标准库 `urllib`；PDF 解析用 `pypdf`。
 
-## 目录与约定
-- **仓库即唯一目录**：所有交付物、脚本、文档均在仓库根目录；模板构建与回归为开发辅助（见下），不在公开分发范围内
-- **数据流**：`reits_update.py`（抓取两所）→ `reits_snapshot.js`（外部快照）→ HTML 启动时优先加载外部快照，内嵌数据兜底
-- **数据模型**：`{id, num, name, mgr, writer, amt, status, up, acc, origin, ex, ptype, psub, pflag, pnote}`；`ex`=交易所（"上交所"/"深交所"）
-- **字段映射**：深交所 fxr(发行人)→origin；cxsqc→writer；cxsjc→mgr；nfxje→amt；xmzt 中文→STATUS_MAP_SZSE
-- **编号约定**：合并后全局连续编号 1..N（跨两所不重复），由 reits_update.py 在排序后统一重排 num，勿手改
-- **默认排序约定**：三级排序（更新日期降序 → 受理日期降序 → 拟发行金额降序），前端 applyFilters 在默认状态（sortKey=up 且降序）走三级比较；手动点表头仍走单列排序
-- 标记数据 localStorage 双写（reits_dash_mark_v1 / _bak），刷新不丢
-- 手动分类覆盖 localStorage 双写（reits_dash_cls_v1 / _bak），前端优先于快照
+## 数据源（2026-10 实测）
+| 板块 | 接口 | 关键参数 | 规模 |
+|---|---|---|---|
+| 机构间·上交所 | `query.sse.com.cn/sseQuery/commonSoaQuery.do` | `sqlId=ZQ_XMLB` + `key=持有型不动产` | 105 条 |
+| 机构间·深交所 | `bond.szse.cn/api/report/ShowReport/data` | `CATALOGID=xmjdxx` / 详情 `xmjdxx_xq` | 18 条 |
+| 公募·上交所 | `query.sse.com.cn/commonSoaQuery.do` | `sqlId=ZQ_XMLB` + **`bond_type=4`** | 102 条 |
+| 公募·深交所 | `reits.szse.cn/api/reits/projectrends/query` | `biztypsb=21`(首发) / `23`(新购入) + `bizType=2` | 58 条 |
 
-## 开发辅助（模板/回归）
-- **构建**：`build_reits.py` 从模板（模板文件在 `templates/` 子目录，见 `docs/03_构建与发布.md`）生成正式 HTML；改 HTML 前先改模板再构建
-- **验证**：改完建议 `node --check` 抽取内嵌 JS 语法检查 + Chrome 无头回归（`tests/` 下回归脚本模式），再提交
+全部需带 `Referer` + 浏览器 UA。
 
-## 更新流程规范（增量策略，必读 `更新流程规范.md`）
-- **分类字段增量**：ptype/psub/pflag/pnote 默认从旧快照按 id 继承，**每次更新不重算**；仅新增项目（标「待分类」）或 CLS_VERSION 递增（全量重分类提示）才触发重新分类
-- **分类基线**：`cls_seed.json`（id→分类）用于首次建立基线/补漏；勿删，删除会导致大量项目变待分类
-- **快照版本号**：reits_snapshot.js 输出 `__REITS_CLS_VERSION__`，脚本下次运行比对
-- **其他模块**：基础字段随抓取自然更新；编号每次重排；前端标记/手动分类（localStorage）独立不受更新影响
-- **红线**：禁止无版本变更时重算已有分类；禁止手改正式 HTML（改模板→build_reits.py）
+## 目录与数据流
+```
+index.html            # 唯一看板（双 Tab；勿手改结构，改动后跑 node --check 校验内嵌 JS）
+reits_update.py       # 机构间抓取 → reits_snapshot.json/.js + reits_changes.json + weekly/org-*.md
+gongmu_update.py      # 公募抓取 → gongmu_snapshot.json/.js + gongmu_changes.json + 读取 gap_amounts.json
+classify_public.py    # 公募二级分类 → gongmu_cls.json
+weekly_digest.py      # 双板块合并周报 → weekly/digest-YYYY-Www.md/.html
+fill_prospectus.py    # 本地工具：从招募说明书提取「预计募集规模」（需 Chrome，跑完产出 gap_amounts.json）
+cls_seed.json         # 机构间分类基线，勿删
+```
+
+## 关键约定（踩过的坑，勿重复）
+- **二级分类必须用统一词典**：`交通设施/能源/市政生态/产业园/物流仓储/数据中心/办公/文旅类/消费/租赁住房/综合业态`。公募与机构间共用，否则无法跨板块对比。
+- **一级分类不统一是故意的**：公募用交易所口径「基础设施/商业不动产」，机构间用「经营权类/产权类」，不要强映射。
+- **状态字段**：公募用统一 `stage`（1-6/9）+ 中文 `sname`；机构间用交易所状态码 + `STATUS_LABEL`。渲染统一走 `d.sname || STATUS_LABEL[d.status]`。
+- **深交所基金管理人字段是 `acctfm`**（曾误写 `acptfm` 导致整列空）。
+- **招募说明书取金额必须做上下文校验**：`BAD_CTX`（类REITs/总发行/不足/未达到…）+ 合理区间 0.5–500 亿，否则会把「历史总发行规模」「募集资金规模不足2亿元」当成本基金规模。
+- **`CUR_SEG`/`GONGMU_DATA` 等 `let` 声明必须放在渲染函数之前**，否则启动时 TDZ 报错、统计卡全空。
+- **推送不要带 token 参数**（`-c url.https://TOKEN@...` 会被环境 SIGTERM）；凭据已缓存，直接 `git push origin main`。
+- **GitHub Pages 有 10 分钟 CDN 缓存**，核验线上要加 `?v=时间戳`。
+- **Chrome headless 的 `--window-size` 受系统 DPI 影响**（设 390 实际视口可能 503），判断移动端溢出要注入脚本读 `clientWidth`，不能只看截图。
 
 ## 当前状态与下一步
-- **已融合两所**：上交所 92 条 + 深交所 13 条 = 105 条（2026-08-07 快照）；顶部 Tab（全部/上交所/深交所）与左侧交易所多选联动
-- 接口经验：上交所强制 Referer 白名单（bond.sse.com.cn）；深交所带页面 Referer 即可；**浏览器均无法直连**，更新必须走 reits_update.py
-- 已知 Bug 修复记录：buildMulti 重复 addEventListener 互相抵消 → el._multiBound 只绑一次（勿回归）
-- 下一步：按需扩展（如公募REITs 复用抓取架构、对比视图），改动前先读本文件与 README/docs 保持结构一致
+- 公募 **160 条**（上交所 102 / 深交所 58），金额 **2,389.92 亿**（含招募说明书预计口径 569 亿，看板标「（预计）*」）
+- 机构间 **123 条**（上交所 105 / 深交所 18），金额 2,427.45 亿
+- 两板块均带变更监控（每日 diff + 看板「近期变更」面板 + 周一简报）
+- 自动化：GitHub Actions 每日 08:15 —— 机构间抓取 → 公募抓取 → 周报 → 归档 → 提交
+- 待办：机构间也补二级分类一致性校验；`weekly/` 三份简报可考虑合并为一份对外
